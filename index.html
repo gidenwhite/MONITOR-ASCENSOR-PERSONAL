@@ -2,52 +2,102 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>ESP32 Logs en vivo</title>
+  <title>Logs ESP32 en vivo</title>
   <style>
-    body{font-family:Arial; padding:20px}
-    #logs{white-space:pre-wrap; background:#f7f7f7; padding:10px; border-radius:6px; max-height:70vh; overflow:auto}
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f0f2f5;
+    }
+    h1 {
+      color: #333;
+      text-align: center;
+    }
+    #logs {
+      white-space: pre-wrap;
+      background: #ffffff;
+      padding: 15px;
+      border-radius: 8px;
+      max-height: 70vh;
+      overflow-y: auto;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      margin-top: 20px;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    .status {
+      font-style: italic;
+      color: gray;
+    }
   </style>
-  <!-- Firebase SDKs (Realtime DB) -->
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
   <h1>Mensajes ESP32 (en vivo)</h1>
-  <div id="logs">Conectando...</div>
+  <div id="logs" class="status">Conectando a Firebase...</div>
 
 <script>
-  // --- pega aquí tu firebaseConfig del panel web de Firebase ---
+  // --- 1️⃣ Configuración de Firebase ---
   const firebaseConfig = {
-  apiKey: "AIzaSyAU31I1rNQCDLxG-ayjKS61uTo6oUuCmCA",
-  authDomain: "monitor-ascensor.firebaseapp.com",
-  databaseURL: "https://monitor-ascensor-default-rtdb.firebaseio.com",
-  projectId: "monitor-ascensor",
-  storageBucket: "monitor-ascensor.firebasestorage.app",
-  messagingSenderId: "64032364230",
-  appId: "1:64032364230:web:8afb090f6debefeccfa9c7"
+    apiKey: "AIzaSyAU31I1rNQCDLxG-ayjKS61uTo6oUuCmCA",
+    authDomain: "monitor-ascensor.firebaseapp.com",
+    databaseURL: "https://monitor-ascensor-default-rtdb.firebaseio.com",
+    projectId: "monitor-ascensor",
+    storageBucket: "monitor-ascensor.appspot.com",
+    messagingSenderId: "64032364230",
+    appId: "1:64032364230:web:8afb090f6debefeccfa9c7"
   };
 
-  // Inicializar
+  // Inicializar Firebase
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
-
   const logsDiv = document.getElementById('logs');
-  logsDiv.textContent = '';
+  logsDiv.textContent = ''; // limpiar mensaje inicial
 
-  // Escuchar los mensajes nuevos (onChildAdded para appending)
-  const messagesRef = db.ref('messages');
-  messagesRef.on('child_added', (snapshot) => {
-    const key = snapshot.key;
-    const value = snapshot.val();
-    const time = key; // si usas millis o timestamp real conviértelo
-    const line = `[${time}] ${value}\n`;
-    logsDiv.textContent += line;
+  // --- 2️⃣ Función para mostrar mensajes
+  function addLog(time, msg) {
+    const date = new Date(Number(time)); // convertir timestamp a fecha
+    const timeStr = date.toLocaleTimeString(); // hh:mm:ss
+    logsDiv.textContent += `[${timeStr}] ${msg}\n`;
+    logsDiv.scrollTop = logsDiv.scrollHeight; // auto-scroll
+  }
+
+  // --- 3️⃣ Verificar conexión a Firebase
+  const connectedRef = db.ref(".info/connected");
+  connectedRef.on("value", (snap) => {
+    if (snap.val() === true) {
+      logsDiv.textContent += "✔ Conectado a Firebase ✅\n";
+    } else {
+      logsDiv.textContent += "❌ Desconectado de Firebase...\n";
+    }
     logsDiv.scrollTop = logsDiv.scrollHeight;
   });
 
-  // También puedes leer todos al cargar:
+  // --- 4️⃣ Escuchar nuevos mensajes
+  const messagesRef = db.ref('messages');
+  messagesRef.on('child_added', (snapshot) => {
+    const key = snapshot.key; // timestamp o ID
+    const value = snapshot.val();
+    let msgText = "";
+
+    // si tu JSON es { "mensaje": "..." } extraer mensaje
+    if (value.mensaje !== undefined) {
+      msgText = value.mensaje;
+    } else {
+      msgText = JSON.stringify(value); // por si otro formato
+    }
+
+    addLog(key, msgText);
+  });
+
+  // --- 5️⃣ Leer todos los mensajes al cargar la página
   messagesRef.once('value', (snap) => {
-    if (!snap.exists()) logsDiv.textContent = 'No hay mensajes aún.';
+    if (!snap.exists()) {
+      logsDiv.textContent += "⚠ No hay mensajes aún.\n";
+    }
   });
 
 </script>
