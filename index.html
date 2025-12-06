@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>ESP32 Logs en vivo</title>
+  <style>
+    body{font-family:Arial; padding:20px}
+    #logs{white-space:pre-wrap; background:#f7f7f7; padding:10px; border-radius:6px; max-height:70vh; overflow:auto}
+  </style>
+  <!-- Firebase SDKs (Realtime DB) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+</head>
+<body>
+  <h1>Mensajes ESP32 (en vivo)</h1>
+  <div id="logs">Conectando...</div>
+
+<script>
+  // --- pega aquí tu firebaseConfig del panel web de Firebase ---
+  const firebaseConfig = {
+    apiKey: "TU_API_KEY",
+    authDomain: "TU_PROJECT.firebaseapp.com",
+    databaseURL: "https://TU_PROJECT-default-rtdb.firebaseio.com",
+    projectId: "TU_PROJECT",
+    storageBucket: "TU_PROJECT.appspot.com",
+    messagingSenderId: "XXXX",
+    appId: "1:XXX:web:YYY"
+  };
+
+  // Inicializar
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  const logsDiv = document.getElementById('logs');
+  logsDiv.textContent = '';
+
+  // Escuchar los mensajes nuevos (onChildAdded para appending)
+  const messagesRef = db.ref('messages');
+  messagesRef.on('child_added', (snapshot) => {
+    const key = snapshot.key;
+    const value = snapshot.val();
+    const time = key; // si usas millis o timestamp real conviértelo
+    const line = `[${time}] ${value}\n`;
+    logsDiv.textContent += line;
+    logsDiv.scrollTop = logsDiv.scrollHeight;
+  });
+
+  // También puedes leer todos al cargar:
+  messagesRef.once('value', (snap) => {
+    if (!snap.exists()) logsDiv.textContent = 'No hay mensajes aún.';
+  });
+
+</script>
+</body>
+</html>
