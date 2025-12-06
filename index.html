@@ -31,7 +31,6 @@
       color: gray;
     }
   </style>
-  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
@@ -40,7 +39,7 @@
   <div id="logs" class="status">Conectando a Firebase...</div>
 
 <script>
-  // --- 1️⃣ Configuración de Firebase ---
+  // --- 1️⃣ Configuración Firebase ---
   const firebaseConfig = {
     apiKey: "AIzaSyAU31I1rNQCDLxG-ayjKS61uTo6oUuCmCA",
     authDomain: "monitor-ascensor.firebaseapp.com",
@@ -51,21 +50,20 @@
     appId: "1:64032364230:web:8afb090f6debefeccfa9c7"
   };
 
-  // Inicializar Firebase
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
   const logsDiv = document.getElementById('logs');
-  logsDiv.textContent = ''; // limpiar mensaje inicial
+  logsDiv.textContent = '';
 
-  // --- 2️⃣ Función para mostrar mensajes
-  function addLog(time, msg) {
-    const date = new Date(Number(time)); // convertir timestamp a fecha
-    const timeStr = date.toLocaleTimeString(); // hh:mm:ss
+  // --- 2️⃣ Función para mostrar logs con hora legible ---
+  function addLog(timestamp, msg) {
+    const date = new Date(Number(timestamp));
+    const timeStr = date.toLocaleTimeString();
     logsDiv.textContent += `[${timeStr}] ${msg}\n`;
-    logsDiv.scrollTop = logsDiv.scrollHeight; // auto-scroll
+    logsDiv.scrollTop = logsDiv.scrollHeight;
   }
 
-  // --- 3️⃣ Verificar conexión a Firebase
+  // --- 3️⃣ Verificar conexión en vivo ---
   const connectedRef = db.ref(".info/connected");
   connectedRef.on("value", (snap) => {
     if (snap.val() === true) {
@@ -76,30 +74,21 @@
     logsDiv.scrollTop = logsDiv.scrollHeight;
   });
 
-  // --- 4️⃣ Escuchar nuevos mensajes
+  // --- 4️⃣ Escuchar mensajes nuevos ---
   const messagesRef = db.ref('messages');
   messagesRef.on('child_added', (snapshot) => {
-    const key = snapshot.key; // timestamp o ID
     const value = snapshot.val();
-    let msgText = "";
-
-    // si tu JSON es { "mensaje": "..." } extraer mensaje
-    if (value.mensaje !== undefined) {
-      msgText = value.mensaje;
-    } else {
-      msgText = JSON.stringify(value); // por si otro formato
-    }
-
-    addLog(key, msgText);
+    const timestamp = value.timestamp || Date.now();
+    const msgText = value.mensaje || JSON.stringify(value);
+    addLog(timestamp, msgText);
   });
 
-  // --- 5️⃣ Leer todos los mensajes al cargar la página
+  // --- 5️⃣ Leer mensajes al cargar página ---
   messagesRef.once('value', (snap) => {
     if (!snap.exists()) {
       logsDiv.textContent += "⚠ No hay mensajes aún.\n";
     }
   });
-
 </script>
 </body>
 </html>
