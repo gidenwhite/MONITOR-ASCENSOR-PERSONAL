@@ -1,185 +1,79 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Monitor Serial - Firebase Realtime</title>
-  <style>
-    :root{font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;}
-    body{margin:0;background:#0f1724;color:#e6eef8;display:flex;flex-direction:column;height:100vh}
-    header{padding:12px 16px;background:linear-gradient(90deg,#0b1220,#0f1a2b);display:flex;gap:12px;align-items:center}
-    header h1{font-size:16px;margin:0}
-    .controls{display:flex;gap:8px;align-items:center;margin-left:auto}
-    input,select,button{padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:#0b1220;color:inherit}
-    main{flex:1;display:flex;gap:12px;padding:12px}
-    .left{width:360px;display:flex;flex-direction:column;gap:8px}
-    .panel{background:#071125;padding:12px;border-radius:10px;box-shadow:0 6px 18px rgba(2,6,23,0.6);}
-    .monitor{flex:1;background:#04101b;padding:12px;border-radius:10px;overflow:auto;font-family:monospace;font-size:13px}
-    .row{display:flex;gap:8px;align-items:center}
-    .log-item{padding:6px;border-radius:6px;margin-bottom:6px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent)}
-    .meta{opacity:0.7;font-size:12px;margin-bottom:4px}
-    footer{padding:10px;text-align:center;font-size:12px;color:rgba(255,255,255,0.6)}
-    .big-btn{padding:10px 12px;border-radius:8px}
-  </style>
+<meta charset="UTF-8">
+<title>Monitoreo Ascensor ESP32</title>
+<style>
+  body { font-family: Arial, sans-serif; margin:0; padding:0; display:flex; height:100vh; }
+  #logs { width:40%; padding:10px; border-right:2px solid #333; overflow-y:scroll; background:#f0f0f0; }
+  #ascensor { flex:1; position:relative; background:#e0e0ff; display:flex; justify-content:center; align-items:flex-end; }
+  .piso { position:absolute; width:100%; height:33.33%; border-top:1px solid #999; box-sizing:border-box; }
+  .cabina { width:60px; height:60px; background:red; position:absolute; bottom:0; transition:bottom 1s; display:flex; justify-content:center; align-items:center; color:white; font-weight:bold; }
+</style>
 </head>
 <body>
-  <header>
-    <h1>Monitor Serial — Firebase Realtime</h1>
-    <div class="controls">
-      <label for="path">Ruta DB</label>
-      <input id="path" type="text" value="/serial" style="width:180px" />
-      <label for="limit">Límite</label>
-      <input id="limit" type="number" value="200" style="width:80px" />
-      <button id="connect">Conectar</button>
-      <button id="disconnect">Desconectar</button>
-    </div>
-  </header>
 
-  <main>
-    <div class="left">
-      <div class="panel">
-        <div style="font-weight:600;margin-bottom:8px">Controles</div>
-        <div class="row"><button id="clear" class="big-btn">Limpiar pantalla</button><button id="download" class="big-btn">Descargar log</button></div>
-        <div style="height:8px"></div>
-        <div class="row"><input id="filter" placeholder="Filtro (texto)" style="flex:1" /></div>
-        <div style="height:8px"></div>
-        <div class="row"><label><input id="autoscroll" type="checkbox" checked /> Autoscroll</label></div>
-        <div style="height:8px"></div>
-        <div style="font-size:13px;opacity:0.8">Conexión:</div>
-        <pre id="status" style="background:#061323;padding:8px;border-radius:6px;margin-top:6px;font-size:13px">Desconectado</pre>
-      </div>
+<div id="logs"><h3>Logs en tiempo real</h3></div>
+<div id="ascensor">
+  <div class="piso" style="bottom:0%;"></div>
+  <div class="piso" style="bottom:33.33%;"></div>
+  <div class="piso" style="bottom:66.66%;"></div>
+  <div class="cabina" id="cabina">1</div>
+</div>
 
-      <div class="panel" style="margin-top:8px;flex:1;display:flex;flex-direction:column;">
-        <div style="font-weight:600;margin-bottom:8px">Ajustes</div>
-        <div class="row"><label>Formato:</label>
-          <select id="format"><option value="plain">Plain text</option><option value="json">JSON</option></select>
-        </div>
-        <div style="height:8px"></div>
-        <div style="font-size:13px;opacity:0.8">Nota: si tu Realtime DB requiere autenticación, debes permitir lectura pública o añadir autenticación adicional en esta página.</div>
-      </div>
-    </div>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
-    <div class="monitor panel" id="monitor">
-      <!-- logs aparecerán aquí -->
-      <div style="opacity:0.6">Esperando datos... conecta y especifica la ruta (ej: /serial o /messages)</div>
-    </div>
-  </main>
+<script>
+  // Configuración Firebase
+  const firebaseConfig = {
+    apiKey: "AIzaSyAU31I1rNQCDLxG-ayjKS61uTo6oUuCmCA",
+    authDomain: "monitor-ascensor.firebaseapp.com",
+    databaseURL: "https://monitor-ascensor-default-rtdb.firebaseio.com",
+    projectId: "monitor-ascensor",
+    storageBucket: "monitor-ascensor.appspot.com",
+    messagingSenderId: "64032364230",
+    appId: "1:64032364230:web:8afb090f6debefeccfa9c7"
+  };
 
-  <footer>Monitor creado por ChatGPT — Edita la ruta y conecta. Si quieres autenticación o filtrado por campos, dime y lo adapto.</footer>
+  // Inicializar Firebase
+  firebase.initializeApp(firebaseConfig);
+  const dbRef = firebase.database().ref('messages');
 
-  <!-- Firebase JS SDK (compat) -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+  const logsDiv = document.getElementById('logs');
+  const cabina = document.getElementById('cabina');
 
-  <script>
-    // === TU CONFIGURACIÓN DE FIREBASE ===
-    const firebaseConfig = {
-      apiKey: "AIzaSyAU31I1rNQCDLxG-ayjKS61uTo6oUuCmCA",
-      authDomain: "monitor-ascensor.firebaseapp.com",
-      databaseURL: "https://monitor-ascensor-default-rtdb.firebaseio.com",
-      projectId: "monitor-ascensor",
-      storageBucket: "monitor-ascensor.appspot.com",
-      messagingSenderId: "64032364230",
-      appId: "1:64032364230:web:8afb090f6debefeccfa9c7"
-    };
+  // Función para actualizar posición de cabina según piso
+  function actualizarCabina(piso) {
+    let bottomPercent = 0;
+    if (piso == 1) bottomPercent = 0;
+    if (piso == 2) bottomPercent = 33.33;
+    if (piso == 3) bottomPercent = 66.66;
+    cabina.style.bottom = bottomPercent + '%';
+    cabina.textContent = piso;
+  }
 
-    // Inicializa Firebase
-    const app = firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+  // Escuchar cambios en Firebase en tiempo real
+  dbRef.on('child_added', (snapshot) => {
+    const data = snapshot.val();
+    const mensaje = data.mensaje || '';
+    const piso = data.piso || 1;
+    const ts = data.ts || Date.now();
 
-    // UI refs
-    const monitorEl = document.getElementById('monitor');
-    const statusEl = document.getElementById('status');
-    const pathInput = document.getElementById('path');
-    const connectBtn = document.getElementById('connect');
-    const disconnectBtn = document.getElementById('disconnect');
-    const clearBtn = document.getElementById('clear');
-    const downloadBtn = document.getElementById('download');
-    const filterInput = document.getElementById('filter');
-    const autoscrollCheckbox = document.getElementById('autoscroll');
-    const limitInput = document.getElementById('limit');
-    const formatSelect = document.getElementById('format');
+    // Crear un div por mensaje con etiqueta y clasificado por piso
+    const msgDiv = document.createElement('div');
+    msgDiv.textContent = `[Piso ${piso}] ${mensaje} - ${new Date(ts).toLocaleTimeString()}`;
+    msgDiv.setAttribute('data-piso', piso);
+    logsDiv.appendChild(msgDiv);
+    logsDiv.scrollTop = logsDiv.scrollHeight;
 
-    let currentRef = null;
-    let listener = null;
-    let logs = [];
-
-    function setStatus(txt){ statusEl.textContent = txt }
-
-    function appendLog(item){
-      logs.push(item);
-      const filter = filterInput.value.trim().toLowerCase();
-      if(filter && !JSON.stringify(item).toLowerCase().includes(filter)) return;
-
-      const el = document.createElement('div');
-      el.className = 'log-item';
-      const meta = document.createElement('div');
-      meta.className = 'meta';
-      const time = item.timestamp ? new Date(item.timestamp).toLocaleString() : new Date().toLocaleString();
-      meta.textContent = `${time} — ${item.key || ''}`;
-      const content = document.createElement('div');
-      content.textContent = (formatSelect.value === 'json') ? JSON.stringify(item.data) : (item.data && item.data.text ? item.data.text : JSON.stringify(item.data));
-      el.appendChild(meta);
-      el.appendChild(content);
-      monitorEl.appendChild(el);
-      if(autoscrollCheckbox.checked) monitorEl.scrollTop = monitorEl.scrollHeight;
+    // Actualizar cabina si mensaje indica movimiento
+    if (mensaje.includes('Subiendo') || mensaje.includes('Bajando') || mensaje.includes('Piso')) {
+      actualizarCabina(piso);
     }
+  });
+</script>
 
-    function connect(){
-      const path = pathInput.value || '/serial';
-      const lim = parseInt(limitInput.value) || 200;
-      disconnect();
-      setStatus('Conectando a ' + path + ' ...');
-      currentRef = db.ref(path);
-
-      // Traer últimos N (asumiendo keys con push/child) usando limitToLast
-      const q = currentRef.limitToLast(lim);
-
-      listener = q.on('child_added', snap => {
-        const key = snap.key;
-        const data = snap.val();
-        const ts = data && data.timestamp ? data.timestamp : (data && data.time ? data.time : Date.now());
-        appendLog({key, data, timestamp: ts});
-      }, err => {
-        setStatus('Error: ' + err.message);
-        console.error(err);
-      });
-
-      // opcional: escuchar cambios completos
-      currentRef.on('value', () => { setStatus('Conectado a ' + path); });
-    }
-
-    function disconnect(){
-      if(currentRef && listener){
-        try{ currentRef.off('child_added', listener); currentRef.off(); }catch(e){}
-      }
-      currentRef = null; listener = null;
-      setStatus('Desconectado');
-    }
-
-    connectBtn.addEventListener('click', () => { connect(); });
-    disconnectBtn.addEventListener('click', () => { disconnect(); });
-    clearBtn.addEventListener('click', () => { monitorEl.innerHTML = ''; logs = []; });
-
-    downloadBtn.addEventListener('click', () => {
-      const filename = 'monitor_log_' + new Date().toISOString().replace(/[:.]/g,'-') + '.json';
-      const blob = new Blob([JSON.stringify(logs, null, 2)], {type:'application/json'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-    });
-
-    // filtro en vivo
-    filterInput.addEventListener('input', () => {
-      monitorEl.innerHTML = '';
-      logs.forEach(appendLog);
-    });
-
-    // formato toggle re-render
-    formatSelect.addEventListener('change', () => { monitorEl.innerHTML = ''; logs.forEach(appendLog); });
-
-    // Si quieres puedes autoconectar al cargar
-    // connect();
-
-  </script>
 </body>
 </html>
