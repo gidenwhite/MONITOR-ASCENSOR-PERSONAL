@@ -25,7 +25,6 @@
             padding: 20px;
         }
 
-        /* Panel de Logs */
         .logs-panel {
             flex: 1;
             background: rgba(255, 255, 255, 0.95);
@@ -86,7 +85,6 @@
             word-wrap: break-word;
         }
 
-        /* Panel de Visualización */
         .visual-panel {
             flex: 1;
             background: rgba(255, 255, 255, 0.95);
@@ -120,7 +118,6 @@
             color: #667eea;
         }
 
-        /* Estructura del Ascensor */
         .elevator-structure {
             position: relative;
             width: 300px;
@@ -131,7 +128,6 @@
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
         }
 
-        /* Pisos */
         .floor {
             position: absolute;
             width: 100%;
@@ -153,7 +149,6 @@
         .floor.piso2 { top: 210px; }
         .floor.piso1 { top: 370px; }
 
-        /* Cabina del Ascensor */
         .cabin {
             position: absolute;
             width: 200px;
@@ -167,7 +162,6 @@
             z-index: 10;
         }
 
-        /* Puertas */
         .doors {
             position: absolute;
             top: 0;
@@ -205,7 +199,6 @@
             transform: translateX(100%);
         }
 
-        /* Interior de cabina */
         .cabin-interior {
             position: absolute;
             top: 10px;
@@ -220,7 +213,6 @@
             font-size: 48px;
         }
 
-        /* Indicador de movimiento */
         .movement-indicator {
             position: absolute;
             top: -40px;
@@ -235,7 +227,6 @@
             50% { transform: translateX(-50%) translateY(-10px); }
         }
 
-        /* Conexión Firebase */
         .connection-status {
             position: fixed;
             top: 20px;
@@ -252,7 +243,6 @@
             background: rgba(231, 76, 60, 0.9);
         }
 
-        /* Scrollbar personalizado */
         .logs-container::-webkit-scrollbar {
             width: 8px;
         }
@@ -276,13 +266,11 @@
     <div class="connection-status" id="connectionStatus">🔴 Conectando...</div>
 
     <div class="container">
-        <!-- Panel de Logs -->
         <div class="logs-panel">
             <div class="logs-header">📋 Monitor de Eventos</div>
             <div class="logs-container" id="logsContainer"></div>
         </div>
 
-        <!-- Panel de Visualización -->
         <div class="visual-panel">
             <div class="visual-header">🏢 Ascensor 3 Pisos</div>
             
@@ -291,7 +279,6 @@
             </div>
 
             <div class="elevator-structure">
-                <!-- Pisos -->
                 <div class="floor piso3">
                     <span class="floor-label">Piso 3</span>
                 </div>
@@ -302,7 +289,6 @@
                     <span class="floor-label">Piso 1</span>
                 </div>
 
-                <!-- Cabina -->
                 <div class="cabin" id="cabin">
                     <div class="movement-indicator" id="movementIndicator" style="display: none;"></div>
                     <div class="doors" id="doors">
@@ -317,12 +303,10 @@
         </div>
     </div>
 
-    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
     <script>
-        // Configuración Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyAU31I1rNQCDLxG-ayjKS61uTo6oUuCmCA",
             authDomain: "monitor-ascensor.firebaseapp.com",
@@ -333,12 +317,10 @@
             appId: "1:64032364230:web:8afb090f6debefeccfa9c7"
         };
 
-        // Inicializar Firebase
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
         const messagesRef = database.ref('messages');
 
-        // Referencias DOM
         const logsContainer = document.getElementById('logsContainer');
         const cabin = document.getElementById('cabin');
         const doors = document.getElementById('doors');
@@ -347,19 +329,18 @@
         const connectionStatus = document.getElementById('connectionStatus');
         const movementIndicator = document.getElementById('movementIndicator');
 
-        // Estado del ascensor
         let currentFloor = 1;
         let isMoving = false;
         let doorsOpen = false;
+        let isInitialized = false;
+        let lastTimestamp = 0;
 
-        // Posiciones de los pisos (en píxeles desde arriba)
         const floorPositions = {
             3: 50,
             2: 210,
             1: 370
         };
 
-        // Agregar log
         function addLog(mensaje, timestamp) {
             const logEntry = document.createElement('div');
             logEntry.className = 'log-entry';
@@ -373,9 +354,13 @@
             
             logsContainer.appendChild(logEntry);
             logsContainer.scrollTop = logsContainer.scrollHeight;
+
+            // Limitar logs a 100 entradas
+            while (logsContainer.children.length > 100) {
+                logsContainer.removeChild(logsContainer.firstChild);
+            }
         }
 
-        // Mover cabina
         function moveCabin(targetFloor) {
             if (targetFloor >= 1 && targetFloor <= 3) {
                 currentFloor = targetFloor;
@@ -385,7 +370,6 @@
             }
         }
 
-        // Abrir/cerrar puertas
         function setDoors(open) {
             doorsOpen = open;
             if (open) {
@@ -395,7 +379,6 @@
             }
         }
 
-        // Mostrar indicador de movimiento
         function showMovementIndicator(direction) {
             if (direction === 'up') {
                 movementIndicator.textContent = '⬆️';
@@ -408,18 +391,17 @@
             }
         }
 
-        // Procesar mensaje
         function processMessage(mensaje) {
             statusText.textContent = mensaje;
 
-            // Detectar piso actual
-            if (mensaje.includes('Detectado: Piso 1') || mensaje.includes('Piso 1 alcanzado')) {
+            // Detectar piso alcanzado
+            if (mensaje.includes('Piso 1 alcanzado') || mensaje.includes('Detectado: Piso 1')) {
                 moveCabin(1);
                 showMovementIndicator('none');
-            } else if (mensaje.includes('Detectado: Piso 2') || mensaje.includes('Piso 2 alcanzado')) {
+            } else if (mensaje.includes('Piso 2 alcanzado') || mensaje.includes('Detectado: Piso 2')) {
                 moveCabin(2);
                 showMovementIndicator('none');
-            } else if (mensaje.includes('Detectado: Piso 3') || mensaje.includes('Piso 3 alcanzado')) {
+            } else if (mensaje.includes('Piso 3 alcanzado') || mensaje.includes('Detectado: Piso 3')) {
                 moveCabin(3);
                 showMovementIndicator('none');
             }
@@ -459,12 +441,39 @@
             }
         }
 
-        // Escuchar nuevos mensajes
-        messagesRef.on('child_added', (snapshot) => {
-            const data = snapshot.val();
-            if (data && data.mensaje) {
+        // Cargar últimos 20 mensajes al iniciar
+        messagesRef.orderByChild('ts').limitToLast(20).once('value', (snapshot) => {
+            const messages = [];
+            snapshot.forEach((child) => {
+                const data = child.val();
+                if (data && data.mensaje) {
+                    messages.push(data);
+                }
+            });
+
+            // Ordenar por timestamp
+            messages.sort((a, b) => (a.ts || 0) - (b.ts || 0));
+
+            // Mostrar mensajes históricos
+            messages.forEach((data) => {
                 addLog(data.mensaje, data.ts || Date.now());
                 processMessage(data.mensaje);
+                lastTimestamp = data.ts || 0;
+            });
+
+            isInitialized = true;
+            console.log('✅ Sistema inicializado con últimos mensajes');
+        });
+
+        // Escuchar SOLO nuevos mensajes después de inicialización
+        messagesRef.on('child_added', (snapshot) => {
+            if (!isInitialized) return; // Ignorar hasta que se cargue historial
+
+            const data = snapshot.val();
+            if (data && data.mensaje && data.ts > lastTimestamp) {
+                addLog(data.mensaje, data.ts || Date.now());
+                processMessage(data.mensaje);
+                lastTimestamp = data.ts;
             }
         });
 
