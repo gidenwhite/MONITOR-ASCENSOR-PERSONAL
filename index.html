@@ -1,497 +1,185 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monitor de Ascensor - Tiempo Real</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        .container {
-            display: flex;
-            height: 100vh;
-            gap: 20px;
-            padding: 20px;
-        }
-
-        .logs-panel {
-            flex: 1;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-        }
-
-        .logs-header {
-            font-size: 24px;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 3px solid #667eea;
-        }
-
-        .logs-container {
-            flex: 1;
-            overflow-y: auto;
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 15px;
-        }
-
-        .log-entry {
-            padding: 12px;
-            margin-bottom: 8px;
-            border-radius: 8px;
-            background: white;
-            border-left: 4px solid #667eea;
-            animation: slideIn 0.3s ease;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateX(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-
-        .log-time {
-            font-size: 11px;
-            color: #999;
-            margin-bottom: 4px;
-        }
-
-        .log-message {
-            font-size: 14px;
-            color: #333;
-            word-wrap: break-word;
-        }
-
-        .visual-panel {
-            flex: 1;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-        }
-
-        .visual-header {
-            font-size: 24px;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 20px;
-        }
-
-        .status-bar {
-            width: 100%;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .status-text {
-            font-size: 18px;
-            font-weight: bold;
-            color: #667eea;
-        }
-
-        .elevator-structure {
-            position: relative;
-            width: 300px;
-            height: 500px;
-            background: linear-gradient(to bottom, #2c3e50 0%, #34495e 100%);
-            border: 3px solid #1a252f;
-            border-radius: 10px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-        }
-
-        .floor {
-            position: absolute;
-            width: 100%;
-            height: 2px;
-            background: #95a5a6;
-            left: 0;
-        }
-
-        .floor-label {
-            position: absolute;
-            left: -50px;
-            top: -10px;
-            font-weight: bold;
-            color: #333;
-            font-size: 16px;
-        }
-
-        .floor.piso3 { top: 50px; }
-        .floor.piso2 { top: 210px; }
-        .floor.piso1 { top: 370px; }
-
-        .cabin {
-            position: absolute;
-            width: 200px;
-            height: 140px;
-            left: 50px;
-            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-            border: 4px solid #a93226;
-            border-radius: 8px;
-            transition: top 2s ease-in-out;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
-            z-index: 10;
-        }
-
-        .doors {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            border-radius: 4px;
-        }
-
-        .door {
-            position: absolute;
-            top: 0;
-            width: 50%;
-            height: 100%;
-            background: linear-gradient(to right, #34495e 0%, #2c3e50 100%);
-            transition: transform 1s ease;
-        }
-
-        .door-left {
-            left: 0;
-            border-right: 2px solid #1a252f;
-        }
-
-        .door-right {
-            right: 0;
-            border-left: 2px solid #1a252f;
-        }
-
-        .doors.open .door-left {
-            transform: translateX(-100%);
-        }
-
-        .doors.open .door-right {
-            transform: translateX(100%);
-        }
-
-        .cabin-interior {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            right: 10px;
-            bottom: 10px;
-            background: #ecf0f1;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 48px;
-        }
-
-        .movement-indicator {
-            position: absolute;
-            top: -40px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 32px;
-            animation: bounce 1s infinite;
-        }
-
-        @keyframes bounce {
-            0%, 100% { transform: translateX(-50%) translateY(0); }
-            50% { transform: translateX(-50%) translateY(-10px); }
-        }
-
-        .connection-status {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 10px 20px;
-            border-radius: 20px;
-            background: rgba(46, 204, 113, 0.9);
-            color: white;
-            font-weight: bold;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        }
-
-        .connection-status.disconnected {
-            background: rgba(231, 76, 60, 0.9);
-        }
-
-        .logs-container::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .logs-container::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
-        }
-
-        .logs-container::-webkit-scrollbar-thumb {
-            background: #667eea;
-            border-radius: 10px;
-        }
-
-        .logs-container::-webkit-scrollbar-thumb:hover {
-            background: #764ba2;
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Monitor Serial - Firebase Realtime</title>
+  <style>
+    :root{font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;}
+    body{margin:0;background:#0f1724;color:#e6eef8;display:flex;flex-direction:column;height:100vh}
+    header{padding:12px 16px;background:linear-gradient(90deg,#0b1220,#0f1a2b);display:flex;gap:12px;align-items:center}
+    header h1{font-size:16px;margin:0}
+    .controls{display:flex;gap:8px;align-items:center;margin-left:auto}
+    input,select,button{padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:#0b1220;color:inherit}
+    main{flex:1;display:flex;gap:12px;padding:12px}
+    .left{width:360px;display:flex;flex-direction:column;gap:8px}
+    .panel{background:#071125;padding:12px;border-radius:10px;box-shadow:0 6px 18px rgba(2,6,23,0.6);}
+    .monitor{flex:1;background:#04101b;padding:12px;border-radius:10px;overflow:auto;font-family:monospace;font-size:13px}
+    .row{display:flex;gap:8px;align-items:center}
+    .log-item{padding:6px;border-radius:6px;margin-bottom:6px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent)}
+    .meta{opacity:0.7;font-size:12px;margin-bottom:4px}
+    footer{padding:10px;text-align:center;font-size:12px;color:rgba(255,255,255,0.6)}
+    .big-btn{padding:10px 12px;border-radius:8px}
+  </style>
 </head>
 <body>
-    <div class="connection-status" id="connectionStatus">🔴 Conectando...</div>
+  <header>
+    <h1>Monitor Serial — Firebase Realtime</h1>
+    <div class="controls">
+      <label for="path">Ruta DB</label>
+      <input id="path" type="text" value="/serial" style="width:180px" />
+      <label for="limit">Límite</label>
+      <input id="limit" type="number" value="200" style="width:80px" />
+      <button id="connect">Conectar</button>
+      <button id="disconnect">Desconectar</button>
+    </div>
+  </header>
 
-    <div class="container">
-        <div class="logs-panel">
-            <div class="logs-header">📋 Monitor de Eventos</div>
-            <div class="logs-container" id="logsContainer"></div>
+  <main>
+    <div class="left">
+      <div class="panel">
+        <div style="font-weight:600;margin-bottom:8px">Controles</div>
+        <div class="row"><button id="clear" class="big-btn">Limpiar pantalla</button><button id="download" class="big-btn">Descargar log</button></div>
+        <div style="height:8px"></div>
+        <div class="row"><input id="filter" placeholder="Filtro (texto)" style="flex:1" /></div>
+        <div style="height:8px"></div>
+        <div class="row"><label><input id="autoscroll" type="checkbox" checked /> Autoscroll</label></div>
+        <div style="height:8px"></div>
+        <div style="font-size:13px;opacity:0.8">Conexión:</div>
+        <pre id="status" style="background:#061323;padding:8px;border-radius:6px;margin-top:6px;font-size:13px">Desconectado</pre>
+      </div>
+
+      <div class="panel" style="margin-top:8px;flex:1;display:flex;flex-direction:column;">
+        <div style="font-weight:600;margin-bottom:8px">Ajustes</div>
+        <div class="row"><label>Formato:</label>
+          <select id="format"><option value="plain">Plain text</option><option value="json">JSON</option></select>
         </div>
-
-        <div class="visual-panel">
-            <div class="visual-header">🏢 Ascensor 3 Pisos</div>
-            
-            <div class="status-bar">
-                <div class="status-text" id="statusText">Inicializando sistema...</div>
-            </div>
-
-            <div class="elevator-structure">
-                <div class="floor piso3">
-                    <span class="floor-label">Piso 3</span>
-                </div>
-                <div class="floor piso2">
-                    <span class="floor-label">Piso 2</span>
-                </div>
-                <div class="floor piso1">
-                    <span class="floor-label">Piso 1</span>
-                </div>
-
-                <div class="cabin" id="cabin">
-                    <div class="movement-indicator" id="movementIndicator" style="display: none;"></div>
-                    <div class="doors" id="doors">
-                        <div class="door door-left"></div>
-                        <div class="door door-right"></div>
-                    </div>
-                    <div class="cabin-interior">
-                        <span id="floorDisplay">1</span>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <div style="height:8px"></div>
+        <div style="font-size:13px;opacity:0.8">Nota: si tu Realtime DB requiere autenticación, debes permitir lectura pública o añadir autenticación adicional en esta página.</div>
+      </div>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <div class="monitor panel" id="monitor">
+      <!-- logs aparecerán aquí -->
+      <div style="opacity:0.6">Esperando datos... conecta y especifica la ruta (ej: /serial o /messages)</div>
+    </div>
+  </main>
 
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyAU31I1rNQCDLxG-ayjKS61uTo6oUuCmCA",
-            authDomain: "monitor-ascensor.firebaseapp.com",
-            databaseURL: "https://monitor-ascensor-default-rtdb.firebaseio.com",
-            projectId: "monitor-ascensor",
-            storageBucket: "monitor-ascensor.appspot.com",
-            messagingSenderId: "64032364230",
-            appId: "1:64032364230:web:8afb090f6debefeccfa9c7"
-        };
+  <footer>Monitor creado por ChatGPT — Edita la ruta y conecta. Si quieres autenticación o filtrado por campos, dime y lo adapto.</footer>
 
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-        const messagesRef = database.ref('messages');
+  <!-- Firebase JS SDK (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 
-        const logsContainer = document.getElementById('logsContainer');
-        const cabin = document.getElementById('cabin');
-        const doors = document.getElementById('doors');
-        const floorDisplay = document.getElementById('floorDisplay');
-        const statusText = document.getElementById('statusText');
-        const connectionStatus = document.getElementById('connectionStatus');
-        const movementIndicator = document.getElementById('movementIndicator');
+  <script>
+    // === TU CONFIGURACIÓN DE FIREBASE ===
+    const firebaseConfig = {
+      apiKey: "AIzaSyAU31I1rNQCDLxG-ayjKS61uTo6oUuCmCA",
+      authDomain: "monitor-ascensor.firebaseapp.com",
+      databaseURL: "https://monitor-ascensor-default-rtdb.firebaseio.com",
+      projectId: "monitor-ascensor",
+      storageBucket: "monitor-ascensor.appspot.com",
+      messagingSenderId: "64032364230",
+      appId: "1:64032364230:web:8afb090f6debefeccfa9c7"
+    };
 
-        let currentFloor = 1;
-        let isMoving = false;
-        let doorsOpen = false;
-        let isInitialized = false;
-        let lastTimestamp = 0;
+    // Inicializa Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-        const floorPositions = {
-            3: 50,
-            2: 210,
-            1: 370
-        };
+    // UI refs
+    const monitorEl = document.getElementById('monitor');
+    const statusEl = document.getElementById('status');
+    const pathInput = document.getElementById('path');
+    const connectBtn = document.getElementById('connect');
+    const disconnectBtn = document.getElementById('disconnect');
+    const clearBtn = document.getElementById('clear');
+    const downloadBtn = document.getElementById('download');
+    const filterInput = document.getElementById('filter');
+    const autoscrollCheckbox = document.getElementById('autoscroll');
+    const limitInput = document.getElementById('limit');
+    const formatSelect = document.getElementById('format');
 
-        function addLog(mensaje, timestamp) {
-            const logEntry = document.createElement('div');
-            logEntry.className = 'log-entry';
-            
-            const time = new Date(timestamp).toLocaleTimeString('es-ES');
-            
-            logEntry.innerHTML = `
-                <div class="log-time">${time}</div>
-                <div class="log-message">${mensaje}</div>
-            `;
-            
-            logsContainer.appendChild(logEntry);
-            logsContainer.scrollTop = logsContainer.scrollHeight;
+    let currentRef = null;
+    let listener = null;
+    let logs = [];
 
-            // Limitar logs a 100 entradas
-            while (logsContainer.children.length > 100) {
-                logsContainer.removeChild(logsContainer.firstChild);
-            }
-        }
+    function setStatus(txt){ statusEl.textContent = txt }
 
-        function moveCabin(targetFloor) {
-            if (targetFloor >= 1 && targetFloor <= 3) {
-                currentFloor = targetFloor;
-                const targetPosition = floorPositions[targetFloor] - 20;
-                cabin.style.top = targetPosition + 'px';
-                floorDisplay.textContent = targetFloor;
-            }
-        }
+    function appendLog(item){
+      logs.push(item);
+      const filter = filterInput.value.trim().toLowerCase();
+      if(filter && !JSON.stringify(item).toLowerCase().includes(filter)) return;
 
-        function setDoors(open) {
-            doorsOpen = open;
-            if (open) {
-                doors.classList.add('open');
-            } else {
-                doors.classList.remove('open');
-            }
-        }
+      const el = document.createElement('div');
+      el.className = 'log-item';
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      const time = item.timestamp ? new Date(item.timestamp).toLocaleString() : new Date().toLocaleString();
+      meta.textContent = `${time} — ${item.key || ''}`;
+      const content = document.createElement('div');
+      content.textContent = (formatSelect.value === 'json') ? JSON.stringify(item.data) : (item.data && item.data.text ? item.data.text : JSON.stringify(item.data));
+      el.appendChild(meta);
+      el.appendChild(content);
+      monitorEl.appendChild(el);
+      if(autoscrollCheckbox.checked) monitorEl.scrollTop = monitorEl.scrollHeight;
+    }
 
-        function showMovementIndicator(direction) {
-            if (direction === 'up') {
-                movementIndicator.textContent = '⬆️';
-                movementIndicator.style.display = 'block';
-            } else if (direction === 'down') {
-                movementIndicator.textContent = '⬇️';
-                movementIndicator.style.display = 'block';
-            } else {
-                movementIndicator.style.display = 'none';
-            }
-        }
+    function connect(){
+      const path = pathInput.value || '/serial';
+      const lim = parseInt(limitInput.value) || 200;
+      disconnect();
+      setStatus('Conectando a ' + path + ' ...');
+      currentRef = db.ref(path);
 
-        function processMessage(mensaje) {
-            statusText.textContent = mensaje;
+      // Traer últimos N (asumiendo keys con push/child) usando limitToLast
+      const q = currentRef.limitToLast(lim);
 
-            // Detectar piso alcanzado
-            if (mensaje.includes('Piso 1 alcanzado') || mensaje.includes('Detectado: Piso 1')) {
-                moveCabin(1);
-                showMovementIndicator('none');
-            } else if (mensaje.includes('Piso 2 alcanzado') || mensaje.includes('Detectado: Piso 2')) {
-                moveCabin(2);
-                showMovementIndicator('none');
-            } else if (mensaje.includes('Piso 3 alcanzado') || mensaje.includes('Detectado: Piso 3')) {
-                moveCabin(3);
-                showMovementIndicator('none');
-            }
+      listener = q.on('child_added', snap => {
+        const key = snap.key;
+        const data = snap.val();
+        const ts = data && data.timestamp ? data.timestamp : (data && data.time ? data.time : Date.now());
+        appendLog({key, data, timestamp: ts});
+      }, err => {
+        setStatus('Error: ' + err.message);
+        console.error(err);
+      });
 
-            // Detectar movimiento
-            if (mensaje.includes('MOTOR SUBIENDO') || mensaje.includes('⬆ Subiendo')) {
-                showMovementIndicator('up');
-                setDoors(false);
-            } else if (mensaje.includes('MOTOR BAJANDO') || mensaje.includes('⬇ Bajando')) {
-                showMovementIndicator('down');
-                setDoors(false);
-            }
+      // opcional: escuchar cambios completos
+      currentRef.on('value', () => { setStatus('Conectado a ' + path); });
+    }
 
-            // Detectar destino de movimiento
-            if (mensaje.includes('Desplazando a piso 1')) {
-                setTimeout(() => moveCabin(1), 500);
-            } else if (mensaje.includes('Desplazando a piso 2')) {
-                setTimeout(() => moveCabin(2), 500);
-            } else if (mensaje.includes('Desplazando a piso 3')) {
-                setTimeout(() => moveCabin(3), 500);
-            }
+    function disconnect(){
+      if(currentRef && listener){
+        try{ currentRef.off('child_added', listener); currentRef.off(); }catch(e){}
+      }
+      currentRef = null; listener = null;
+      setStatus('Desconectado');
+    }
 
-            // Detectar puertas
-            if (mensaje.includes('Puertas abiertas') || mensaje.includes('Abriendo puertas')) {
-                setDoors(true);
-                showMovementIndicator('none');
-            } else if (mensaje.includes('Cerrando puertas') || mensaje.includes('cierre')) {
-                setDoors(false);
-            }
+    connectBtn.addEventListener('click', () => { connect(); });
+    disconnectBtn.addEventListener('click', () => { disconnect(); });
+    clearBtn.addEventListener('click', () => { monitorEl.innerHTML = ''; logs = []; });
 
-            // Emergencia
-            if (mensaje.includes('EMERGENCIA')) {
-                statusText.style.color = '#e74c3c';
-                showMovementIndicator('none');
-            } else {
-                statusText.style.color = '#667eea';
-            }
-        }
+    downloadBtn.addEventListener('click', () => {
+      const filename = 'monitor_log_' + new Date().toISOString().replace(/[:.]/g,'-') + '.json';
+      const blob = new Blob([JSON.stringify(logs, null, 2)], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    });
 
-        // Cargar últimos 20 mensajes al iniciar
-        messagesRef.orderByChild('ts').limitToLast(20).once('value', (snapshot) => {
-            const messages = [];
-            snapshot.forEach((child) => {
-                const data = child.val();
-                if (data && data.mensaje) {
-                    messages.push(data);
-                }
-            });
+    // filtro en vivo
+    filterInput.addEventListener('input', () => {
+      monitorEl.innerHTML = '';
+      logs.forEach(appendLog);
+    });
 
-            // Ordenar por timestamp
-            messages.sort((a, b) => (a.ts || 0) - (b.ts || 0));
+    // formato toggle re-render
+    formatSelect.addEventListener('change', () => { monitorEl.innerHTML = ''; logs.forEach(appendLog); });
 
-            // Mostrar mensajes históricos
-            messages.forEach((data) => {
-                addLog(data.mensaje, data.ts || Date.now());
-                processMessage(data.mensaje);
-                lastTimestamp = data.ts || 0;
-            });
+    // Si quieres puedes autoconectar al cargar
+    // connect();
 
-            isInitialized = true;
-            console.log('✅ Sistema inicializado con últimos mensajes');
-        });
-
-        // Escuchar SOLO nuevos mensajes después de inicialización
-        messagesRef.on('child_added', (snapshot) => {
-            if (!isInitialized) return; // Ignorar hasta que se cargue historial
-
-            const data = snapshot.val();
-            if (data && data.mensaje && data.ts > lastTimestamp) {
-                addLog(data.mensaje, data.ts || Date.now());
-                processMessage(data.mensaje);
-                lastTimestamp = data.ts;
-            }
-        });
-
-        // Estado de conexión
-        const connectedRef = database.ref('.info/connected');
-        connectedRef.on('value', (snap) => {
-            if (snap.val() === true) {
-                connectionStatus.textContent = '🟢 Conectado';
-                connectionStatus.classList.remove('disconnected');
-            } else {
-                connectionStatus.textContent = '🔴 Desconectado';
-                connectionStatus.classList.add('disconnected');
-            }
-        });
-
-        // Inicializar posición
-        moveCabin(1);
-        setDoors(false);
-    </script>
+  </script>
 </body>
 </html>
