@@ -1144,6 +1144,13 @@ iv class="emergency-reason" id="emergencyReason"></div>
         function procesarMensajeParaSimulacion(mensaje, piso, estadoCodigo) {
             console.log('Procesando mensaje:', mensaje);
             
+            // Condición especial para ESTADO = 10
+            if (parseInt(estadoCodigo) === 10) {
+                const razonEmergencia = 'Puertas no cerradas al iniciar bajada inicial. Requiere reinicio físico del sistema.';
+                activarEmergencia(razonEmergencia);
+                return; // Detener el procesamiento aquí para evitar conflictos
+            }
+
             // 1. MOVIMIENTO - SUBIR
             if (mensaje.includes('[ESTADO_MOVIMIENTO_SUBIENDO]')) {
                 const pisoDestino = extraerPisoDestino(mensaje);
@@ -1506,7 +1513,7 @@ iv class="emergency-reason" id="emergencyReason"></div>
             }, 1000);
         }
 
-        function activarEmergencia() {
+        function activarEmergencia(razon = 'Sistema detenido. Esperar reinicio físico.') {
             estadoSimulacion.emergencia = true;
             estadoSimulacion.movimiento = 'DETENIDO';
             estadoSimulacion.enVentanaInterna = false;
@@ -1520,12 +1527,12 @@ iv class="emergency-reason" id="emergencyReason"></div>
             if (estadoSimulacion.temporizadorDisplay) {
                 clearInterval(estadoSimulacion.temporizadorDisplay);
                 estadoSimulacion.temporizadorDisplay = null;
-            } 'Sistema detenido.Esper reinicio físic.'
+            }
             
             // Actualizar UI
             elementos.elevatorCabin.classList.add('emergency');
             elementos.elevatorCabin.classList.remove('moving-up', 'moving-down');
-            elementos.emergencyReason.textContent = 'Sistema detenido. Esperar reinicio físico.';
+            elementos.emergencyReason.textContent = razon;
             elementos.emergencyPanel.classList.add('show');
             elementos.cabinStatus.textContent = '🚨 EMERGENCIA';
             elementos.currentState.textContent = 'EMERGENCIA';
