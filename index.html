@@ -1143,13 +1143,18 @@ iv class="emergency-reason" id="emergencyReason"></div>
         // ===== FUNCIONES DE SIMULACIÓN MEJORADAS =====
         function procesarMensajeParaSimulacion(mensaje, piso, estadoCodigo) {
             console.log('Procesando mensaje:', mensaje);
-            
-            // Condición especial para ESTADO = 10
+
+            // Lógica de Emergencia basada en estadoCodigo
             if (parseInt(estadoCodigo) === 10) {
+                // Si el estado es 10, activar la emergencia y no procesar más.
                 const razonEmergencia = 'Puertas no cerradas al iniciar bajada inicial. Requiere reinicio físico del sistema.';
                 activarEmergencia(razonEmergencia);
-                return; // Detener el procesamiento aquí para evitar conflictos
+                return;
+            } else if (estadoSimulacion.emergencia) {
+                // Si llega cualquier otro mensaje y estábamos en emergencia, reiniciar.
+                reiniciarSimulacion();
             }
+            // Si no hay emergencia, continuar procesando el mensaje normalmente.
 
             // 1. MOVIMIENTO - SUBIR
             if (mensaje.includes('[ESTADO_MOVIMIENTO_SUBIENDO]')) {
