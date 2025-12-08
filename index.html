@@ -2,29 +2,57 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Monitor Ascensor - Firebase Live</title>
+<title>Monitor Ascensor - Firebase Tiempo Real</title>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-database-compat.js"></script>
+
 <style>
-    body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
-    h1 { text-align: center; }
-    #log { background: white; padding: 15px; border-radius: 10px;
-           box-shadow: 0 0 10px rgba(0,0,0,0.2); max-width: 700px; margin: auto; }
-    .item { padding: 8px; border-bottom: 1px solid #ddd; }
-    .time { color: #777; font-size: 0.8em; }
+body {
+    font-family: Arial;
+    background: #f5f5f5;
+    padding: 20px;
+}
+table {
+    width: 100%;
+    background: white;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+th, td {
+    padding: 8px;
+    border-bottom: 1px solid #ddd;
+}
+th {
+    background: #333;
+    color: white;
+}
 </style>
 </head>
+
 <body>
 
-<h1>📡 Monitor Ascensor ESP32 – Firebase en Tiempo Real</h1>
-<div id="log">Cargando datos...</div>
+<h2>📡 Monitor Ascensor – Mensajes en Tiempo Real</h2>
+<h3>⏱ Hora local: Bolivia (GMT-4)</h3>
 
-<!-- SDK de Firebase -->
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<table>
+<thead>
+<tr>
+    <th>Fecha y hora (Bolivia)</th>
+    <th>Piso</th>
+    <th>Estado</th>
+    <th>Mensaje</th>
+</tr>
+</thead>
+<tbody id="tabla">
+</tbody>
+</table>
 
 <script>
-// =============================
-// CONFIGURACIÓN FIREBASE
-// =============================
+// =========================================
+// CONFIG FIREBASE
+// =========================================
 const firebaseConfig = {
     apiKey: "AIzaSyAU31I1rNQCDLxG-ayjKS61uTo6oUuCmCA",
     authDomain: "monitor-ascensor.firebaseapp.com",
@@ -36,36 +64,52 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-// =============================
-// LEER MENSAJES EN TIEMPO REAL
-// =============================
-const logDiv = document.getElementById("log");
+// =========================================
+// FUNCIÓN → convertir TS ESP32 a hora Bolivia
+// =========================================
+function tsToBolivia(ts) {
+    let fecha = new Date(ts);
 
-firebase.database().ref("messages").on("value", snapshot => {
-    const data = snapshot.val();
-    if (!data) {
-        logDiv.innerHTML = "Aún no hay mensajes...";
-        return;
-    }
+    // Ajuste a Bolivia (GMT-4)
+    let opciones = {
+        timeZone: "America/La_Paz",
+        hour12: false,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+    };
+    return fecha.toLocaleString("es-BO", opciones);
+}
 
-    let html = "";
-    const keys = Object.keys(data).reverse(); // Últimos mensajes arriba
+// =========================================
+// LISTENER TIEMPO REAL
+// =========================================
+db.ref("messages").on("value", (snap) => {
+    const datos = snap.val();
+    const tabla = document.getElementById("tabla");
+    tabla.innerHTML = "";
 
-    keys.forEach(id => {
-        const msg = data[id];
-        let fecha = new Date(msg.ts).toLocaleString("es-BO");
+    if (!datos) return;
 
-        html += `
-            <div class="item">
-                <b>${msg.mensaje}</b><br>
-                Piso: ${msg.piso} | Estado: ${msg.estado}<br>
-                <span class="time">${fecha}</span>
-            </div>
+    // Convertimos a array y ordenamos por timestamp (descendente)
+    let arr = Object.values(datos).sort((a, b) => b.ts - a.ts);
+
+    arr.forEach(msg => {
+        let fila = `
+            <tr>
+                <td>${tsToBolivia(msg.ts)}</td>
+                <td>${msg.piso}</td>
+                <td>${msg.estado}</td>
+                <td>${msg.mensaje}</td>
+            </tr>
         `;
+        tabla.innerHTML += fila;
     });
-
-    logDiv.innerHTML = html;
 });
 </script>
 
