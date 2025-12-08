@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎯 Panel de Control - Ascensor 3 Pisos</title>
+    <title>Simulador de Ascensor 3 Pisos - Tiempo Real</title>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-    <!-- Font Awesome -->
+    <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* RESET Y ESTILOS BASE */
+        /* ===== RESET Y BASE ===== */
         * {
             margin: 0;
             padding: 0;
@@ -19,735 +19,797 @@
         }
 
         body {
-            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
-            color: #ffffff;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
             min-height: 100vh;
-            overflow-x: hidden;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1600px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            height: calc(100vh - 40px);
-        }
-
-        /* PANEL IZQUIERDO - MENSAJES FIREBASE */
-        .panel-mensajes {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 30px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             display: flex;
-            flex-direction: column;
-            overflow: hidden;
+            overflow-x: hidden;
         }
 
-        .panel-header {
+        /* ===== PANEL IZQUIERDO - FIREBASE ===== */
+        .panel-firebase {
+            width: 35%;
+            min-width: 400px;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.95);
+            border-right: 2px solid #334155;
+            padding: 25px;
+            overflow-y: auto;
+            box-shadow: 5px 0 25px rgba(0, 0, 0, 0.4);
+            position: relative;
+            z-index: 10;
+        }
+
+        .panel-firebase::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .panel-firebase::-webkit-scrollbar-track {
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 5px;
+        }
+
+        .panel-firebase::-webkit-scrollbar-thumb {
+            background: #3b82f6;
+            border-radius: 5px;
+        }
+
+        .firebase-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             margin-bottom: 25px;
             padding-bottom: 15px;
-            border-bottom: 2px solid #00b4d8;
+            border-bottom: 2px solid #3b82f6;
         }
 
-        .panel-header h1 {
-            font-size: 1.8rem;
-            color: #00b4d8;
+        .firebase-title {
             display: flex;
             align-items: center;
             gap: 12px;
-            margin-bottom: 8px;
-        }
-
-        .panel-header h1 i {
             font-size: 1.5rem;
+            color: #60a5fa;
         }
 
-        .subtitle {
-            color: #90e0ef;
-            font-size: 0.95rem;
-            opacity: 0.9;
+        .firebase-title i {
+            color: #3b82f6;
         }
 
-        .status-bar {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-        .status-item {
+        .connection-status {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 12px 20px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 12px;
-            border-left: 4px solid #00b4d8;
-            min-width: 180px;
+            gap: 8px;
+            padding: 8px 15px;
+            background: rgba(30, 41, 59, 0.7);
+            border-radius: 20px;
+            font-size: 0.9rem;
         }
 
-        .status-icon {
-            font-size: 1.3rem;
-            color: #00b4d8;
-        }
-
-        .status-info {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .status-label {
-            font-size: 0.8rem;
-            color: #90e0ef;
-            opacity: 0.8;
-        }
-
-        .status-value {
-            font-size: 1.1rem;
-            font-weight: 600;
-        }
-
-        #connectionStatus {
-            color: #4cc9f0;
-        }
-
-        .mensajes-container {
-            flex: 1;
-            overflow-y: auto;
-            padding-right: 10px;
-        }
-
-        .mensajes-container::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .mensajes-container::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 10px;
-        }
-
-        .mensajes-container::-webkit-scrollbar-thumb {
-            background: #00b4d8;
-            border-radius: 10px;
-        }
-
-        .mensaje-item {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 18px;
-            margin-bottom: 15px;
-            border-radius: 12px;
-            border-left: 5px solid #00b4d8;
-            animation: fadeIn 0.5s ease;
-            transition: all 0.3s ease;
-        }
-
-        .mensaje-item:hover {
-            transform: translateX(5px);
-            background: rgba(255, 255, 255, 0.08);
-        }
-
-        .mensaje-item.emergencia {
-            border-left-color: #ff0054;
-            background: rgba(255, 0, 84, 0.1);
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ef4444;
             animation: pulse 2s infinite;
         }
 
-        .mensaje-item.movimiento {
-            border-left-color: #4cc9f0;
-        }
-
-        .mensaje-item.puerta {
-            border-left-color: #38b000;
-        }
-
-        .mensaje-item.inicio {
-            border-left-color: #ff9e00;
-        }
-
-        .mensaje-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            font-size: 0.85rem;
-            color: #90e0ef;
-        }
-
-        .mensaje-time {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .mensaje-content {
-            font-size: 1rem;
-            line-height: 1.5;
-            word-break: break-word;
-        }
-
-        /* PANEL DERECHO - SIMULACIÓN DEL ASCENSOR */
-        .panel-simulacion {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 30px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .simulacion-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #ff0054;
-        }
-
-        .simulacion-header h2 {
-            font-size: 1.8rem;
-            color: #ff0054;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .estado-actual {
-            background: rgba(0, 0, 0, 0.4);
-            padding: 10px 20px;
-            border-radius: 12px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #4cc9f0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        /* ESTRUCTURA DEL ASCENSOR */
-        .estructura-ascensor {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-        }
-
-        .edificio {
-            width: 400px;
-            height: 600px;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            border-radius: 15px;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 
-                inset 0 0 30px rgba(0, 0, 0, 0.8),
-                0 0 0 4px #222831,
-                0 10px 40px rgba(0, 0, 0, 0.5);
-        }
-
-        /* ESTRUCTURA METÁLICA */
-        .estructura-metalica {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 1;
-        }
-
-        .tubo-vertical {
-            position: absolute;
-            width: 8px;
-            height: 100%;
-            background: linear-gradient(to bottom, #4a4e69 0%, #222831 50%, #4a4e69 100%);
-            left: 50px;
-            box-shadow: 
-                inset 0 0 10px rgba(0, 0, 0, 0.5),
-                0 0 10px rgba(0, 0, 0, 0.3);
-        }
-
-        .tubo-vertical:nth-child(2) {
-            left: 350px;
-        }
-
-        .tubo-horizontal {
-            position: absolute;
-            height: 8px;
-            width: 300px;
-            background: linear-gradient(to right, #4a4e69 0%, #222831 50%, #4a4e69 100%);
-            left: 50px;
-            box-shadow: 
-                inset 0 0 10px rgba(0, 0, 0, 0.5),
-                0 0 10px rgba(0, 0, 0, 0.3);
-        }
-
-        .tubo-horizontal:nth-child(1) { top: 0; }
-        .tubo-horizontal:nth-child(2) { top: 200px; }
-        .tubo-horizontal:nth-child(3) { top: 400px; }
-        .tubo-horizontal:nth-child(4) { top: 600px; }
-
-        /* PISOS DEL EDIFICIO */
-        .piso {
-            position: absolute;
-            width: 100%;
-            height: 200px;
-            border-bottom: 3px solid #222831;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .piso:nth-child(1) { top: 0; }
-        .piso:nth-child(2) { top: 200px; }
-        .piso:nth-child(3) { top: 400px; }
-
-        .numero-piso {
-            position: absolute;
-            left: 20px;
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: #00b4d8;
-            background: rgba(0, 0, 0, 0.5);
-            width: 50px;
-            height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            border: 2px solid #00b4d8;
-        }
-
-        .indicador-llamada {
-            position: absolute;
-            right: 30px;
-            width: 20px;
-            height: 20px;
-            background: #00b4d8;
-            border-radius: 50%;
-            opacity: 0;
-            transition: opacity 0.3s;
-            box-shadow: 0 0 15px #00b4d8;
-        }
-
-        .indicador-llamada.activo {
-            opacity: 1;
-            animation: parpadeo 1s infinite;
-        }
-
-        /* CABINA DEL ASCENSOR */
-        .cabina-container {
-            position: absolute;
-            width: 250px;
-            height: 160px;
-            left: 75px;
-            bottom: 20px;
-            transition: bottom 2s cubic-bezier(0.34, 1.56, 0.64, 1);
-            z-index: 2;
-        }
-
-        .cabina {
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, #4cc9f0 0%, #4361ee 100%);
-            border-radius: 10px;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 
-                0 5px 25px rgba(76, 201, 240, 0.4),
-                inset 0 0 20px rgba(255, 255, 255, 0.1);
-            border: 3px solid rgba(255, 255, 255, 0.2);
-            transition: all 0.5s ease;
-        }
-
-        .cabina.emergencia {
-            background: linear-gradient(135deg, #ff0054 0%, #ff4d6d 100%);
-            animation: parpadeo-emergencia 1s infinite;
-            box-shadow: 
-                0 5px 25px rgba(255, 0, 84, 0.6),
-                inset 0 0 20px rgba(255, 255, 255, 0.2);
-        }
-
-        .cabina.moviendose {
-            animation: vibracion 0.2s infinite;
-        }
-
-        /* PUERTAS DE LA CABINA */
-        .puertas {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            right: 10px;
-            bottom: 10px;
-            overflow: hidden;
-            border-radius: 6px;
-        }
-
-        .puerta {
-            position: absolute;
-            top: 0;
-            width: 50%;
-            height: 100%;
-            background: linear-gradient(135deg, #48cae4 0%, #0096c7 100%);
-            transition: transform 1s ease-in-out;
-            box-shadow: 
-                inset 0 0 10px rgba(0, 0, 0, 0.3),
-                0 0 15px rgba(0, 0, 0, 0.2);
-            border: 2px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .puerta.emergencia {
-            background: linear-gradient(135deg, #ff4d6d 0%, #c9184a 100%);
-        }
-
-        .puerta-izquierda {
-            left: 0;
-            transform-origin: left;
-            border-right: 1px solid rgba(0, 0, 0, 0.3);
-        }
-
-        .puerta-derecha {
-            right: 0;
-            transform-origin: right;
-            border-left: 1px solid rgba(0, 0, 0, 0.3);
-        }
-
-        .puertas.abiertas .puerta-izquierda {
-            transform: translateX(-100%);
-        }
-
-        .puertas.abiertas .puerta-derecha {
-            transform: translateX(100%);
-        }
-
-        .puertas.cerrando .puerta-izquierda,
-        .puertas.cerrando .puerta-derecha {
-            transition: transform 2s ease-in-out;
-        }
-
-        /* PANEL INTERNO DE LA CABINA */
-        .panel-cabina {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.4);
-            padding: 15px;
-            border-radius: 8px;
-            text-align: center;
-            min-width: 180px;
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            z-index: 3;
-        }
-
-        .display-piso {
-            font-size: 3rem;
-            font-weight: bold;
-            color: white;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-            margin-bottom: 5px;
-        }
-
-        .display-estado {
-            font-size: 1rem;
-            color: #90e0ef;
-            font-weight: 600;
-            min-height: 24px;
-        }
-
-        .display-destino {
-            font-size: 0.9rem;
-            color: #ffd60a;
-            margin-top: 5px;
-        }
-
-        /* CONTROLES DEL PANEL */
-        .controles-simulacion {
-            margin-top: 25px;
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-        }
-
-        .grupo-controles {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 15px;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .grupo-titulo {
-            font-size: 1rem;
-            color: #00b4d8;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .botones-controles {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-        }
-
-        .btn-control {
-            background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
-            border: none;
-            color: white;
-            padding: 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 5px;
-        }
-
-        .btn-control:hover {
-            background: linear-gradient(135deg, #4cc9f0 0%, #4361ee 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(76, 201, 240, 0.4);
-        }
-
-        .btn-control:active {
-            transform: translateY(0);
-        }
-
-        .btn-control.emergencia {
-            background: linear-gradient(135deg, #ff0054 0%, #c9184a 100%);
-            grid-column: span 3;
-            margin-top: 10px;
-        }
-
-        .btn-control.emergencia:hover {
-            background: linear-gradient(135deg, #ff4d6d 0%, #ff0054 100%);
-            box-shadow: 0 5px 15px rgba(255, 0, 84, 0.4);
-        }
-
-        .btn-control.activo {
-            background: linear-gradient(135deg, #38b000 0%, #2d7d46 100%);
-            box-shadow: 0 0 15px rgba(56, 176, 0, 0.5);
-        }
-
-        /* ANIMACIONES */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+        .status-dot.connected {
+            background: #10b981;
+            animation: none;
         }
 
         @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(255, 0, 84, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(255, 0, 84, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(255, 0, 84, 0); }
-        }
-
-        @keyframes parpadeo {
             0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
+            50% { opacity: 0.5; }
         }
 
-        @keyframes parpadeo-emergencia {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
+        /* Tabla de eventos */
+        #tablaEventos {
+            width: 100%;
+            border-collapse: collapse;
         }
 
-        @keyframes vibracion {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(1px); }
-            75% { transform: translateX(-1px); }
+        #tablaEventos tr {
+            border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+            transition: background 0.3s;
         }
 
-        /* RESPONSIVE */
+        #tablaEventos tr:hover {
+            background: rgba(30, 41, 59, 0.5);
+        }
+
+        #tablaEventos th {
+            background: #1e293b;
+            color: #cbd5e1;
+            padding: 15px 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #3b82f6;
+        }
+
+        #tablaEventos td {
+            padding: 14px 12px;
+            font-size: 0.9rem;
+            color: #cbd5e1;
+            vertical-align: top;
+        }
+
+        /* ===== PANEL DERECHO - SIMULACIÓN ===== */
+        .panel-simulacion {
+            flex: 1;
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* Header de simulación */
+        .sim-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .sim-title {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .sim-title h1 {
+            font-size: 2.2rem;
+            background: linear-gradient(90deg, #60a5fa, #3b82f6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-weight: 700;
+        }
+
+        .sim-title i {
+            font-size: 2rem;
+            color: #3b82f6;
+        }
+
+        /* Indicadores de estado */
+        .state-indicators {
+            display: flex;
+            gap: 15px;
+        }
+
+        .state-box {
+            background: rgba(30, 41, 59, 0.7);
+            padding: 12px 20px;
+            border-radius: 12px;
+            border-left: 4px solid #3b82f6;
+            min-width: 150px;
+            text-align: center;
+        }
+
+        .state-label {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .state-value {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #60a5fa;
+        }
+
+        /* ===== CONSTRUCCIÓN DEL ASCENSOR ===== */
+        .construction {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+        /* Estructura metálica (tubo cuadrado) */
+        .metal-frame {
+            width: 450px;
+            height: 550px;
+            background: linear-gradient(135deg, #475569 0%, #334155 100%);
+            border-radius: 15px;
+            position: relative;
+            box-shadow: 
+                inset 0 0 30px rgba(0, 0, 0, 0.5),
+                0 15px 35px rgba(0, 0, 0, 0.4);
+            border: 12px solid #1e293b;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Pisos */
+        .floor {
+            flex: 1;
+            position: relative;
+            border-bottom: 3px solid #1e293b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .floor:last-child {
+            border-bottom: none;
+        }
+
+        .floor-number {
+            position: absolute;
+            left: 30px;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            background: rgba(30, 41, 59, 0.7);
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: 2px solid #475569;
+        }
+
+        /* Cabina del ascensor */
+        .elevator-cabin {
+            width: 300px;
+            height: 160px;
+            background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+            border-radius: 12px;
+            position: absolute;
+            left: 75px;
+            bottom: 20px;
+            transition: bottom 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 
+                0 5px 20px rgba(0, 0, 0, 0.3),
+                inset 0 0 20px rgba(255, 255, 255, 0.1);
+            border: 3px solid #1e293b;
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Cabina en emergencia */
+        .elevator-cabin.emergency {
+            background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+            animation: emergencyPulse 1s infinite;
+        }
+
+        @keyframes emergencyPulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.5); }
+            50% { box-shadow: 0 0 40px rgba(239, 68, 68, 0.8); }
+        }
+
+        /* Indicadores de la cabina */
+        .cabin-indicators {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .current-floor {
+            font-size: 2.8rem;
+            font-weight: 700;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .cabin-status {
+            font-size: 1rem;
+            color: #dbeafe;
+            padding: 6px 15px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        /* Controles internos de la cabina */
+        .internal-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            padding: 20px;
+            flex-wrap: wrap;
+        }
+
+        .internal-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            color: #e2e8f0;
+            font-size: 1.3rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .internal-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+            background: linear-gradient(135deg, #334155 0%, #475569 100%);
+        }
+
+        .internal-btn.active {
+            background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+            color: white;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+        }
+
+        /* Puertas de la cabina */
+        .cabin-doors {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            overflow: hidden;
+            border-radius: 10px;
+        }
+
+        .door {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 50%;
+            background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid #1f2937;
+            box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .door-left {
+            left: 0;
+            border-right: 1px solid #1f2937;
+        }
+
+        .door-right {
+            right: 0;
+            border-left: 1px solid #1f2937;
+        }
+
+        .doors-open .door-left {
+            transform: translateX(-100%);
+        }
+
+        .doors-open .door-right {
+            transform: translateX(100%);
+        }
+
+        /* Botones de llamada externa */
+        .external-calls {
+            position: absolute;
+            right: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            z-index: 10;
+        }
+
+        .call-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            color: #94a3b8;
+            font-size: 1.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .call-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .call-btn.active {
+            background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+            color: white;
+            box-shadow: 0 0 25px rgba(59, 130, 246, 0.6);
+            animation: callPulse 1.5s infinite;
+        }
+
+        @keyframes callPulse {
+            0%, 100% { box-shadow: 0 0 25px rgba(59, 130, 246, 0.6); }
+            50% { box-shadow: 0 0 40px rgba(59, 130, 246, 0.9); }
+        }
+
+        /* Panel de emergencia */
+        .emergency-panel {
+            position: fixed;
+            right: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(220, 38, 38, 0.95);
+            padding: 25px;
+            border-radius: 15px;
+            border: 3px solid #fecaca;
+            box-shadow: 0 10px 30px rgba(220, 38, 38, 0.4);
+            max-width: 350px;
+            z-index: 1000;
+            display: none;
+        }
+
+        .emergency-panel.show {
+            display: block;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { 
+                opacity: 0;
+                transform: translateY(-50%) translateX(100px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(-50%) translateX(0);
+            }
+        }
+
+        .emergency-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .emergency-header i {
+            font-size: 2.5rem;
+            color: white;
+        }
+
+        .emergency-title {
+            font-size: 1.8rem;
+            color: white;
+            font-weight: 700;
+        }
+
+        .emergency-reason {
+            color: #fecaca;
+            font-size: 1.1rem;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        /* Temporizador de puertas */
+        .door-timer {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: rgba(30, 41, 59, 0.9);
+            padding: 15px 25px;
+            border-radius: 12px;
+            border: 2px solid #3b82f6;
+            display: none;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .door-timer.show {
+            display: flex;
+        }
+
+        .timer-label {
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+
+        .timer-display {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #60a5fa;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Cola de llamadas */
+        .call-queue {
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            background: rgba(30, 41, 59, 0.9);
+            padding: 20px;
+            border-radius: 12px;
+            border: 2px solid #10b981;
+            min-width: 200px;
+        }
+
+        .queue-title {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .queue-items {
+            display: flex;
+            gap: 10px;
+        }
+
+        .queue-item {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #10b981;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+
+        /* Responsive */
         @media (max-width: 1200px) {
-            .container {
-                grid-template-columns: 1fr;
-                height: auto;
+            body {
+                flex-direction: column;
             }
             
-            .panel-mensajes, .panel-simulacion {
-                min-height: 700px;
+            .panel-firebase {
+                width: 100%;
+                height: 50vh;
+                min-width: unset;
             }
             
-            .edificio {
+            .panel-simulacion {
+                height: 50vh;
+            }
+            
+            .metal-frame {
                 width: 350px;
-                height: 500px;
+                height: 400px;
             }
             
-            .piso {
-                height: 166px;
+            .elevator-cabin {
+                width: 230px;
+                height: 130px;
+                left: 60px;
+            }
+            
+            .current-floor {
+                font-size: 2.2rem;
+            }
+            
+            .emergency-panel {
+                position: relative;
+                top: unset;
+                right: unset;
+                transform: none;
+                margin: 20px auto;
+                max-width: 90%;
             }
         }
 
         @media (max-width: 768px) {
-            .status-bar {
+            .firebase-header {
                 flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
             }
             
-            .controles-simulacion {
-                grid-template-columns: 1fr;
+            .sim-header {
+                flex-direction: column;
+                gap: 20px;
+                align-items: flex-start;
             }
             
-            .edificio {
-                width: 100%;
-                max-width: 350px;
-                height: 400px;
+            .state-indicators {
+                flex-wrap: wrap;
             }
             
-            .cabina-container {
+            .metal-frame {
+                width: 300px;
+                height: 350px;
+            }
+            
+            .elevator-cabin {
                 width: 200px;
-                height: 130px;
-                left: 50%;
-                transform: translateX(-50%);
+                height: 110px;
+                left: 50px;
             }
+            
+            .internal-btn {
+                width: 40px;
+                height: 40px;
+                font-size: 1.1rem;
+            }
+            
+            .call-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 1.3rem;
+            }
+        }
+
+        /* Animación de movimiento */
+        @keyframes moveUp {
+            from { transform: translateY(0); }
+            to { transform: translateY(-1px); }
+        }
+
+        @keyframes moveDown {
+            from { transform: translateY(0); }
+            to { transform: translateY(1px); }
+        }
+
+        .moving-up {
+            animation: moveUp 0.5s ease-in-out infinite alternate;
+        }
+
+        .moving-down {
+            animation: moveDown 0.5s ease-in-out infinite alternate;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- PANEL IZQUIERDO - MENSAJES FIREBASE -->
-        <div class="panel-mensajes">
-            <div class="panel-header">
-                <h1><i class="fas fa-database"></i> PANEL DE MONITOREO</h1>
-                <div class="subtitle">Mensajes en tiempo real desde el ascensor ESP32</div>
+    <!-- PANEL IZQUIERDO - FIREBASE -->
+    <div class="panel-firebase">
+        <div class="firebase-header">
+            <div class="firebase-title">
+                <i class="fas fa-database"></i>
+                <span>Registro en Tiempo Real</span>
             </div>
-            
-            <div class="status-bar">
-                <div class="status-item">
-                    <div class="status-icon"><i class="fas fa-wifi"></i></div>
-                    <div class="status-info">
-                        <div class="status-label">CONEXIÓN</div>
-                        <div class="status-value" id="connectionStatus">Conectando...</div>
-                    </div>
-                </div>
-                <div class="status-item">
-                    <div class="status-icon"><i class="fas fa-clock"></i></div>
-                    <div class="status-info">
-                        <div class="status-label">ÚLTIMA ACTUALIZACIÓN</div>
-                        <div class="status-value" id="lastUpdate">--:--:--</div>
-                    </div>
-                </div>
-                <div class="status-item">
-                    <div class="status-icon"><i class="fas fa-bell"></i></div>
-                    <div class="status-info">
-                        <div class="status-label">ESTADO SISTEMA</div>
-                        <div class="status-value" id="systemStatus">INICIANDO...</div>
-                    </div>
-                </div>
-                <div class="status-item">
-                    <div class="status-icon"><i class="fas fa-elevator"></i></div>
-                    <div class="status-info">
-                        <div class="status-label">PISO ACTUAL</div>
-                        <div class="status-value" id="currentFloor">1</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="mensajes-container" id="mensajesContainer">
-                <!-- Los mensajes de Firebase aparecerán aquí -->
+            <div class="connection-status">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="connectionText">Conectando...</span>
             </div>
         </div>
         
-        <!-- PANEL DERECHO - SIMULACIÓN DEL ASCENSOR -->
-        <div class="panel-simulacion">
-            <div class="simulacion-header">
-                <h2><i class="fas fa-elevator"></i> SIMULACIÓN 3D</h2>
-                <div class="estado-actual">
-                    <i class="fas fa-info-circle"></i>
-                    <span id="estadoSimulacion">ESPERANDO INICIO</span>
-                </div>
+        <table id="tablaEventos">
+            <thead>
+                <tr>
+                    <th>Fecha y Hora</th>
+                    <th>Piso</th>
+                    <th>Estado</th>
+                    <th>Mensaje</th>
+                </tr>
+            </thead>
+            <tbody id="tablaEventosBody">
+                <!-- Las filas se insertarán aquí dinámicamente -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- PANEL DERECHO - SIMULACIÓN -->
+    <div class="panel-simulacion">
+        <!-- Header -->
+        <div class="sim-header">
+            <div class="sim-title">
+                <i class="fas fa-elevator"></i>
+                <h1>SIMULADOR DE ASCENSOR</h1>
             </div>
             
-            <div class="estructura-ascensor">
-                <div class="edificio">
-                    <!-- Estructura metálica -->
-                    <div class="estructura-metalica">
-                        <div class="tubo-vertical"></div>
-                        <div class="tubo-vertical"></div>
-                        <div class="tubo-horizontal"></div>
-                        <div class="tubo-horizontal"></div>
-                        <div class="tubo-horizontal"></div>
-                        <div class="tubo-horizontal"></div>
-                    </div>
-                    
-                    <!-- Pisos -->
-                    <div class="piso" id="piso3">
-                        <div class="numero-piso">3</div>
-                        <div class="indicador-llamada" id="llamadaP3"></div>
-                    </div>
-                    <div class="piso" id="piso2">
-                        <div class="numero-piso">2</div>
-                        <div class="indicador-llamada" id="llamadaP2"></div>
-                    </div>
-                    <div class="piso" id="piso1">
-                        <div class="numero-piso">1</div>
-                        <div class="indicador-llamada" id="llamadaP1"></div>
-                    </div>
-                    
-                    <!-- Cabina del ascensor -->
-                    <div class="cabina-container" id="cabinaContainer" style="bottom: 20px;">
-                        <div class="cabina" id="cabina">
-                            <div class="puertas" id="puertas">
-                                <div class="puerta puerta-izquierda"></div>
-                                <div class="puerta puerta-derecha"></div>
-                            </div>
-                            <div class="panel-cabina">
-                                <div class="display-piso" id="displayPiso">1</div>
-                                <div class="display-estado" id="displayEstado">ESPERANDO</div>
-                                <div class="display-destino" id="displayDestino">Destino: --</div>
-                            </div>
-                        </div>
-                    </div>
+            <div class="state-indicators">
+                <div class="state-box">
+                    <div class="state-label">Estado Actual</div>
+                    <div class="state-value" id="currentState">ESPERANDO</div>
+                </div>
+                <div class="state-box">
+                    <div class="state-label">Piso Actual</div>
+                    <div class="state-value" id="currentFloorDisplay">1</div>
+                </div>
+                <div class="state-box">
+                    <div class="state-label">Destino</div>
+                    <div class="state-value" id="targetFloorDisplay">--</div>
                 </div>
             </div>
-            
-            <!-- Controles de simulación -->
-            <div class="controles-simulacion">
-                <div class="grupo-controles">
-                    <div class="grupo-titulo"><i class="fas fa-door-closed"></i> LLAMADAS EXTERNAS</div>
-                    <div class="botones-controles">
-                        <button class="btn-control" id="btnCall1">PISO 1</button>
-                        <button class="btn-control" id="btnCall2">PISO 2</button>
-                        <button class="btn-control" id="btnCall3">PISO 3</button>
-                    </div>
+        </div>
+
+        <!-- Construcción del ascensor -->
+        <div class="construction">
+            <!-- Estructura metálica -->
+            <div class="metal-frame">
+                <!-- Piso 3 -->
+                <div class="floor" style="border-bottom: 3px solid #1e293b;">
+                    <div class="floor-number">3</div>
                 </div>
                 
-                <div class="grupo-controles">
-                    <div class="grupo-titulo"><i class="fas fa-user"></i> ÓRDENES INTERNAS</div>
-                    <div class="botones-controles">
-                        <button class="btn-control" id="btnInternal1">PISO 1</button>
-                        <button class="btn-control" id="btnInternal2">PISO 2</button>
-                        <button class="btn-control" id="btnInternal3">PISO 3</button>
-                    </div>
+                <!-- Piso 2 -->
+                <div class="floor" style="border-bottom: 3px solid #1e293b;">
+                    <div class="floor-number">2</div>
                 </div>
                 
-                <div class="grupo-controles">
-                    <div class="grupo-titulo"><i class="fas fa-cogs"></i> CONTROLES MANUALES</div>
-                    <div class="botones-controles">
-                        <button class="btn-control" id="btnOpenDoor"><i class="fas fa-door-open"></i> ABRIR</button>
-                        <button class="btn-control" id="btnCloseDoor"><i class="fas fa-door-closed"></i> CERRAR</button>
-                        <button class="btn-control emergencia" id="btnEmergency">
-                            <i class="fas fa-exclamation-triangle"></i> EMERGENCIA
+                <!-- Piso 1 -->
+                <div class="floor">
+                    <div class="floor-number">1</div>
+                </div>
+
+                <!-- Cabina del ascensor -->
+                <div class="elevator-cabin" id="elevatorCabin" style="bottom: 20px;">
+                    <!-- Indicadores -->
+                    <div class="cabin-indicators">
+                        <div class="current-floor" id="cabinFloor">1</div>
+                        <div class="cabin-status" id="cabinStatus">ESPERANDO</div>
+                    </div>
+                    
+                    <!-- Controles internos -->
+                    <div class="internal-controls">
+                        <button class="internal-btn" data-floor="1">1</button>
+                        <button class="internal-btn" data-floor="2">2</button>
+                        <button class="internal-btn" data-floor="3">3</button>
+                        <button class="internal-btn" id="btnOpenDoor">
+                            <i class="fas fa-door-open"></i>
                         </button>
                     </div>
+                    
+                    <!-- Puertas -->
+                    <div class="cabin-doors" id="cabinDoors">
+                        <div class="door door-left"></div>
+                        <div class="door door-right"></div>
+                    </div>
                 </div>
+            </div>
+
+            <!-- Botones de llamada externa -->
+            <div class="external-calls">
+                <button class="call-btn" data-floor="3">3</button>
+                <button class="call-btn" data-floor="2">2</button>
+                <button class="call-btn" data-floor="1">1</button>
             </div>
         </div>
     </div>
 
+    <!-- Panel de emergencia -->
+    <div class="emergency-panel" id="emergencyPanel">
+        <div class="emergency-header">
+            <i class="fas fa-exclamation-triangle"></i>
+            <div class="emergency-title">EMERGENCIA ACTIVADA</div>
+        </div>
+        <div class="emergency-reason" id="emergencyReason">
+            Sistema detenido por seguridad
+        </div>
+        <div style="color: #fecaca; font-size: 0.9rem;">
+            <i class="fas fa-info-circle"></i>
+            Requiere reinicio físico del sistema
+        </div>
+    </div>
+
+    <!-- Temporizador de puertas -->
+    <div class="door-timer" id="doorTimer">
+        <div class="timer-label">
+            <i class="far fa-clock"></i> Cierre en:
+        </div>
+        <div class="timer-display" id="timerDisplay">10s</div>
+    </div>
+
+    <!-- Cola de llamadas -->
+    <div class="call-queue" id="callQueue">
+        <div class="queue-title">
+            <i class="fas fa-list-ol"></i> Cola de Llamadas
+        </div>
+        <div class="queue-items" id="queueItems">
+            <!-- Se llenará dinámicamente -->
+        </div>
+    </div>
+
     <script>
-        // ===============================
-        // CONFIGURACIÓN FIREBASE
-        // ===============================
+        // ===== CONFIGURACIÓN FIREBASE =====
         const firebaseConfig = {
             apiKey: "AIzaSyAU31I1rNQCDLxG-ayjKS61uTo6oUuCmCA",
             authDomain: "monitor-ascensor.firebaseapp.com",
@@ -760,549 +822,647 @@
 
         // Inicializar Firebase
         firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-        
-        // ===============================
-        // VARIABLES DE ESTADO GLOBAL
-        // ===============================
-        let estadoSistema = {
+        const db = firebase.database();
+        const refMensajes = db.ref("messages");
+
+        // ===== VARIABLES DE ESTADO =====
+        let millisESP32_inicio = null;
+        let estadoSimulacion = {
             pisoActual: 1,
             pisoDestino: null,
-            movimiento: 'DETENIDO', // 'DETENIDO', 'SUBIENDO', 'BAJANDO'
-            puertas: 'CERRADAS', // 'CERRADAS', 'ABRIÉNDOSE', 'ABIERTAS', 'CERRÁNDOSE'
+            estado: 'ESPERANDO',
+            puertasAbiertas: false,
             emergencia: false,
-            llamadasExternas: [0, 0, 0], // [P1, P2, P3]
-            ordenesInternas: [0, 0, 0],
-            ultimoMensaje: null,
-            conexionActiva: false,
-            temporizadorPuertas: null
+            movimiento: 'DETENIDO',
+            temporizadorPuertas: null,
+            colaLlamadas: [],
+            llamadasExternas: []
         };
-        
-        // ===============================
-        // POSICIONES DE LA CABINA (en px)
-        // ===============================
-        const posicionesPisos = {
-            1: 20,   // Piso 1: bottom 20px
-            2: 220,  // Piso 2: bottom 220px
-            3: 420   // Piso 3: bottom 420px
-        };
-        
-        // ===============================
-        // INICIALIZACIÓN DEL SISTEMA
-        // ===============================
-        document.addEventListener('DOMContentLoaded', function() {
-            actualizarInterfaz();
-            conectarFirebase();
-            configurarControles();
-            mostrarMensajeInicial();
-        });
-        
-        // ===============================
-        // CONEXIÓN A FIREBASE
-        // ===============================
-        function conectarFirebase() {
-            const mensajesRef = database.ref('messages');
+
+        // ===== ELEMENTOS DOM =====
+        const elementos = {
+            // Firebase
+            statusDot: document.getElementById('statusDot'),
+            connectionText: document.getElementById('connectionText'),
+            tablaEventosBody: document.getElementById('tablaEventosBody'),
             
-            mensajesRef.on('value', (snapshot) => {
-                if (snapshot.exists()) {
-                    const mensajes = snapshot.val();
-                    const mensajesArray = Object.values(mensajes).sort((a, b) => b.ts - a.ts);
-                    
-                    if (mensajesArray.length > 0) {
-                        estadoSistema.conexionActiva = true;
-                        document.getElementById('connectionStatus').textContent = 'CONECTADO';
-                        document.getElementById('connectionStatus').style.color = '#38b000';
-                        
-                        // Procesar el mensaje más reciente
-                        const ultimoMensaje = mensajesArray[0];
-                        procesarMensajeFirebase(ultimoMensaje);
-                        
-                        // Actualizar panel de mensajes
-                        actualizarPanelMensajes(mensajesArray.slice(0, 20));
-                        
-                        // Actualizar última actualización
-                        const fecha = new Date(ultimoMensaje.ts);
-                        document.getElementById('lastUpdate').textContent = fecha.toLocaleTimeString();
-                    }
-                }
-            }, (error) => {
-                console.error('Error Firebase:', error);
-                document.getElementById('connectionStatus').textContent = 'DESCONECTADO';
-                document.getElementById('connectionStatus').style.color = '#ff0054';
-                estadoSistema.conexionActiva = false;
-            });
+            // Simulación
+            elevatorCabin: document.getElementById('elevatorCabin'),
+            cabinFloor: document.getElementById('cabinFloor'),
+            cabinStatus: document.getElementById('cabinStatus'),
+            cabinDoors: document.getElementById('cabinDoors'),
+            currentFloorDisplay: document.getElementById('currentFloorDisplay'),
+            targetFloorDisplay: document.getElementById('targetFloorDisplay'),
+            currentState: document.getElementById('currentState'),
+            
+            // Paneles
+            emergencyPanel: document.getElementById('emergencyPanel'),
+            emergencyReason: document.getElementById('emergencyReason'),
+            doorTimer: document.getElementById('doorTimer'),
+            timerDisplay: document.getElementById('timerDisplay'),
+            callQueue: document.getElementById('callQueue'),
+            queueItems: document.getElementById('queueItems'),
+            
+            // Botones
+            btnOpenDoor: document.getElementById('btnOpenDoor'),
+            internalBtns: document.querySelectorAll('.internal-btn'),
+            callBtns: document.querySelectorAll('.call-btn')
+        };
+
+        // ===== FUNCIONES DE FIREBASE =====
+        function registrarInicio(millisLeido) {
+            if (millisESP32_inicio === null) {
+                millisESP32_inicio = millisLeido;
+                actualizarEstadoConexion(true);
+            }
         }
-        
-        // ===============================
-        // PROCESAMIENTO DE MENSAJES FIREBASE
-        // ===============================
-        function procesarMensajeFirebase(mensaje) {
-            const texto = mensaje.mensaje || '';
-            const piso = mensaje.piso || estadoSistema.pisoActual;
-            const estadoCodigo = mensaje.estado || 0;
+
+        function convertirMillisAFechaReal(millisESP32) {
+            if (millisESP32_inicio === null) return "Calculando...";
+            const ahora = Date.now();
+            const offset = millisESP32_inicio - millisESP32;
+            const fecha = new Date(ahora - offset);
+            return fecha.toLocaleTimeString('es-ES', { 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit' 
+            }) + ' ' + fecha.toLocaleDateString('es-ES');
+        }
+
+        function agregarEventoTabla(fecha, piso, estado, mensaje) {
+            const tr = document.createElement('tr');
             
-            // Actualizar estado del sistema
-            estadoSistema.pisoActual = piso;
-            estadoSistema.ultimoMensaje = texto;
-            
-            // CLASIFICACIÓN Y PROCESAMIENTO DE MENSAJES
-            // ============================================
-            
-            // 1. MOVIMIENTO - SUBIENDO
-            if (texto.includes('[ESTADO_MOVIMIENTO_SUBIENDO]')) {
-                const destino = extraerPisoDestino(texto);
-                if (destino) {
-                    iniciarMovimiento('SUBIENDO', destino);
-                }
-                estadoSistema.emergencia = false;
-                actualizarClaseMensaje('movimiento');
+            // Determinar clase según tipo de mensaje
+            let rowClass = '';
+            if (mensaje.includes('EMERGENCIA') || mensaje.includes('!!!')) {
+                rowClass = 'emergency-row';
+                tr.style.backgroundColor = 'rgba(220, 38, 38, 0.1)';
+            } else if (mensaje.includes('SUBIR') || mensaje.includes('BAJAR')) {
+                rowClass = 'movement-row';
+                tr.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+            } else if (mensaje.includes('PUERTA') || mensaje.includes('Apertura')) {
+                rowClass = 'door-row';
+                tr.style.backgroundColor = 'rgba(34, 197, 94, 0.1)';
             }
             
-            // 2. MOVIMIENTO - BAJANDO
-            else if (texto.includes('[ESTADO_MOVIMIENTO_BAJANDO]')) {
-                const destino = extraerPisoDestino(texto);
-                if (destino) {
-                    iniciarMovimiento('BAJANDO', destino);
-                }
-                estadoSistema.emergencia = false;
-                actualizarClaseMensaje('movimiento');
+            tr.innerHTML = `
+                <td>${fecha}</td>
+                <td>${piso}</td>
+                <td>${estado}</td>
+                <td>${mensaje}</td>
+            `;
+            
+            elementos.tablaEventosBody.insertBefore(tr, elementos.tablaEventosBody.firstChild);
+            
+            // Mantener máximo 50 filas
+            if (elementos.tablaEventosBody.children.length > 50) {
+                elementos.tablaEventosBody.removeChild(elementos.tablaEventosBody.lastChild);
             }
             
-            // 3. ACTIVACIÓN DE MOTOR
-            else if (texto.includes('Relé SUBIR = HIGH') || texto.includes('Relé BAJAR = HIGH')) {
-                // Confirmación visual de motor activado
-                document.getElementById('cabina').classList.add('moviendose');
-                actualizarClaseMensaje('movimiento');
+            // Procesar mensaje para simulación
+            procesarMensajeParaSimulacion(mensaje, piso, estado);
+        }
+
+        function actualizarEstadoConexion(conectado) {
+            if (conectado) {
+                elementos.statusDot.classList.add('connected');
+                elementos.connectionText.textContent = 'Conectado';
+                elementos.connectionText.style.color = '#10b981';
+            } else {
+                elementos.statusDot.classList.remove('connected');
+                elementos.connectionText.textContent = 'Desconectado';
+                elementos.connectionText.style.color = '#ef4444';
+            }
+        }
+
+        // ===== FUNCIONES DE SIMULACIÓN =====
+        function procesarMensajeParaSimulacion(mensaje, piso, estadoCodigo) {
+            console.log('Procesando mensaje:', mensaje);
+            
+            // 1. MOVIMIENTO - SUBIR
+            if (mensaje.includes('[ESTADO_MOVIMIENTO_SUBIENDO]')) {
+                const pisoDestino = extraerPisoDestino(mensaje);
+                iniciarMovimiento('SUBIENDO', pisoDestino);
             }
             
-            // 4. LLEGADA A PISO
-            else if (texto.includes('Llegado a Piso')) {
-                const pisoLlegada = extraerPiso(texto);
-                if (pisoLlegada) {
-                    llegarAPiso(pisoLlegada);
-                    
-                    // Esperar 0.5s y abrir puertas si indica transición
-                    if (texto.includes('Transicion a APERTURA_PUERTAS')) {
-                        setTimeout(() => {
-                            if (!estadoSistema.emergencia) {
-                                iniciarAperturaPuertas();
-                            }
-                        }, 500);
-                    }
-                }
+            // 2. CONFIRMACIÓN MOTOR SUBIENDO
+            else if (mensaje.includes('Relé SUBIR = HIGH (activado)')) {
+                confirmarMotorActivado('SUBIENDO');
             }
             
-            // 5. APERTURA DE PUERTAS
-            else if (texto.includes('[ESTADO_APERTURA_PUERTAS]')) {
-                iniciarAperturaPuertas();
-                actualizarClaseMensaje('puerta');
+            // 3. MOVIMIENTO - BAJAR
+            else if (mensaje.includes('[ESTADO_MOVIMIENTO_BAJANDO]')) {
+                const pisoDestino = extraerPisoDestino(mensaje);
+                iniciarMovimiento('BAJANDO', pisoDestino);
             }
             
-            // 6. SECUENCIA DE APERTURA
-            else if (texto.includes('Apertura: Activando')) {
-                // Puertas abriéndose
-                estadoSistema.puertas = 'ABRIÉNDOSE';
-                document.getElementById('displayEstado').textContent = 'ABRIENDO PUERTAS...';
-                actualizarClaseMensaje('puerta');
+            // 4. CONFIRMACIÓN MOTOR BAJANDO
+            else if (mensaje.includes('Relé BAJAR = HIGH (activado)')) {
+                confirmarMotorActivado('BAJANDO');
             }
-            else if (texto.includes('Relés de cerradura DESACTIVADOS')) {
-                // Puertas totalmente abiertas
-                estadoSistema.puertas = 'ABIERTAS';
-                document.getElementById('displayEstado').textContent = 'PUERTAS ABIERTAS';
-                iniciarTemporizadorCierre(10000);
-                actualizarClaseMensaje('puerta');
+            
+            // 5. LLEGADA A PISO
+            else if (mensaje.includes('Llegado a Piso')) {
+                const pisoLlegada = extraerPisoLlegada(mensaje);
+                llegarAPiso(pisoLlegada);
             }
-            else if (texto.includes('Puertas abiertas (esperando)')) {
-                // Mantener puertas abiertas
-                estadoSistema.puertas = 'ABIERTAS';
-                actualizarClaseMensaje('puerta');
+            
+            // 6. APERTURA DE PUERTAS
+            else if (mensaje.includes('[ESTADO_APERTURA_PUERTAS]')) {
+                abrirPuertas();
             }
-            else if (texto.includes('Fin de ventana de puertas')) {
-                // Cerrar puertas
+            
+            // 7. SECUENCIA DE APERTURA
+            else if (mensaje.includes('Apertura: Activando relé(s)')) {
+                iniciarSecuenciaApertura();
+            }
+            
+            // 8. PUERTAS TOTALMENTE ABIERTAS
+            else if (mensaje.includes('Relés de cerradura DESACTIVADOS')) {
+                puertasTotalmenteAbiertas();
+            }
+            
+            // 9. ESPERA CON PUERTAS ABIERTAS
+            else if (mensaje.includes('Puertas abiertas (esperando)')) {
+                mantenerPuertasAbiertas();
+            }
+            
+            // 10. FIN DE VENTANA
+            else if (mensaje.includes('Fin de ventana de puertas')) {
                 cerrarPuertas();
-                actualizarClaseMensaje('puerta');
             }
             
-            // 7. EMERGENCIA
-            else if (texto.includes('!!! ENTRANDO EN ESTADO_EMERGENCIA')) {
-                activarEmergencia();
-                actualizarClaseMensaje('emergencia');
-            }
-            else if (texto.includes('[ESTADO_EMERGENCIA]')) {
-                // Mantener estado de emergencia
-                estadoSistema.emergencia = true;
-                actualizarClaseMensaje('emergencia');
+            // 11. EMERGENCIA
+            else if (mensaje.includes('!!! ENTRANDO EN ESTADO_EMERGENCIA:')) {
+                const razon = mensaje.split(': ')[1] || 'Razón desconocida';
+                activarEmergencia(razon);
             }
             
-            // 8. LLAMADAS EXTERNAS
-            else if (texto.includes('Llamada externa agregada')) {
-                const pisoLlamada = extraerPiso(texto);
-                if (pisoLlamada) {
-                    mostrarLlamadaExterna(pisoLlamada);
-                }
+            // 12. ESTADO DE EMERGENCIA
+            else if (mensaje.includes('[ESTADO_EMERGENCIA]')) {
+                mantenerEmergencia();
             }
             
-            // 9. ÓRDENES INTERNAS
-            else if (texto.includes('Orden INTERNA')) {
-                const pisoDestino = extraerPiso(texto);
-                if (pisoDestino) {
-                    mostrarOrdenInterna(pisoDestino);
-                    
-                    // Si está detenido, cambiar destino inmediatamente
-                    if (estadoSistema.movimiento === 'DETENIDO') {
-                        estadoSistema.pisoDestino = pisoDestino;
-                        document.getElementById('displayDestino').textContent = `Destino: P${pisoDestino}`;
+            // 13. LLAMADAS EXTERNAS
+            else if (mensaje.includes('Llamada externa agregada')) {
+                const pisoLlamada = extraerPisoLlamada(mensaje);
+                mostrarLlamadaExterna(pisoLlamada);
+            }
+            
+            // 14. ORDEN INTERNA
+            else if (mensaje.includes('Orden INTERNA')) {
+                const pisoDestino = extraerPisoLlamada(mensaje);
+                procesarOrdenInterna(pisoDestino);
+            }
+            
+            // 15. COLA DE LLAMADAS
+            else if (mensaje.includes('Cola extern:')) {
+                const cola = extraerColaLlamadas(mensaje);
+                actualizarColaLlamadas(cola);
+            }
+            
+            // 16. INICIO DEL SISTEMA
+            else if (mensaje.includes('=== INICIO SISTEMA ASCENSOR')) {
+                reiniciarSimulacion();
+            }
+            
+            // 17. AUTODIAGNÓSTICO OK
+            else if (mensaje.includes('=== AUTODIAGNÓSTICO OK ===')) {
+                sistemaListo();
+            }
+            
+            // 18. MOTOR PARADO
+            else if (mensaje.includes('Motor PARADO')) {
+                // Solo procesar si no es una llegada reciente
+                setTimeout(() => {
+                    if (estadoSimulacion.movimiento !== 'DETENIDO' && !estadoSimulacion.emergencia) {
+                        detenerMovimiento();
                     }
-                }
+                }, 100);
             }
-            
-            // 10. INICIO DEL SISTEMA
-            else if (texto.includes('=== INICIO SISTEMA ASCENSOR')) {
-                resetearSimulacion();
-                actualizarClaseMensaje('inicio');
-            }
-            else if (texto.includes('=== AUTODIAGNÓSTICO OK ===')) {
-                document.getElementById('systemStatus').textContent = 'OPERATIVO';
-                document.getElementById('systemStatus').style.color = '#38b000';
-                actualizarClaseMensaje('inicio');
-            }
-            
-            // 11. MOTOR PARADO (contextual)
-            else if (texto.includes('Motor PARADO')) {
-                // Solo detener si no es llegada y no es emergencia
-                if (estadoSistema.movimiento !== 'DETENIDO' && !estadoSistema.emergencia) {
-                    detenerMovimiento();
-                }
-            }
-            
-            // Actualizar interfaz
-            actualizarInterfaz();
         }
-        
-        // ===============================
-        // FUNCIONES DE SIMULACIÓN
-        // ===============================
-        
-        function iniciarMovimiento(direccion, destino) {
-            // Cerrar puertas primero
-            cerrarPuertas();
+
+        // ===== FUNCIONES ESPECÍFICAS DE SIMULACIÓN =====
+        function extraerPisoDestino(mensaje) {
+            const match = mensaje.match(/P(\d+)/);
+            return match ? parseInt(match[1]) : null;
+        }
+
+        function extraerPisoLlegada(mensaje) {
+            const match = mensaje.match(/Piso (\d+)/);
+            return match ? parseInt(match[1]) : estadoSimulacion.pisoActual;
+        }
+
+        function extraerPisoLlamada(mensaje) {
+            const match = mensaje.match(/P(\d+)/);
+            return match ? parseInt(match[1]) : null;
+        }
+
+        function extraerColaLlamadas(mensaje) {
+            const match = mensaje.match(/\[(\d+), (\d+)\]/);
+            return match ? [parseInt(match[1]), parseInt(match[2])] : [0, 0];
+        }
+
+        function iniciarMovimiento(direccion, pisoDestino) {
+            if (estadoSimulacion.emergencia) return;
             
-            // Configurar estado
-            estadoSistema.movimiento = direccion;
-            estadoSistema.pisoDestino = destino;
-            estadoSistema.emergencia = false;
+            estadoSimulacion.movimiento = direccion;
+            estadoSimulacion.pisoDestino = pisoDestino;
+            estadoSimulacion.estado = direccion;
             
-            // Actualizar interfaz
-            document.getElementById('cabina').classList.remove('emergencia');
-            document.getElementById('cabina').classList.add('moviendose');
-            document.getElementById('displayEstado').textContent = `${direccion} A P${destino}`;
-            document.getElementById('displayDestino').textContent = `Destino: P${destino}`;
-            document.getElementById('estadoSimulacion').textContent = `${direccion} A P${destino}`;
+            // Cerrar puertas si están abiertas
+            if (estadoSimulacion.puertasAbiertas) {
+                cerrarPuertas();
+                // Esperar a que se cierren antes de mover
+                setTimeout(() => {
+                    moverCabina(direccion, pisoDestino);
+                }, 2000);
+            } else {
+                moverCabina(direccion, pisoDestino);
+            }
             
-            // Mover cabina (animación)
-            const nuevaPosicion = posicionesPisos[destino];
-            const cabina = document.getElementById('cabinaContainer');
-            cabina.style.transition = 'bottom 3s cubic-bezier(0.34, 1.56, 0.64, 1)';
-            cabina.style.bottom = `${nuevaPosicion}px`;
+            // Actualizar UI
+            elementos.cabinStatus.textContent = `${direccion} → P${pisoDestino}`;
+            elementos.targetFloorDisplay.textContent = `P${pisoDestino}`;
+            elementos.currentState.textContent = direccion;
+            elementos.elevatorCabin.classList.add(`moving-${direccion.toLowerCase()}`);
             
-            // Quitar animación de movimiento al llegar
+            // Actualizar clase de movimiento
+            elementos.elevatorCabin.classList.remove('moving-up', 'moving-down');
+            elementos.elevatorCabin.classList.add(`moving-${direccion.toLowerCase()}`);
+        }
+
+        function confirmarMotorActivado(direccion) {
+            if (estadoSimulacion.emergencia) return;
+            
+            // Efecto visual de confirmación
+            elementos.elevatorCabin.style.boxShadow = 
+                `0 0 30px ${direccion === 'SUBIENDO' ? '#3b82f6' : '#10b981'}`;
+            
             setTimeout(() => {
-                document.getElementById('cabina').classList.remove('moviendose');
-            }, 3000);
+                elementos.elevatorCabin.style.boxShadow = 
+                    '0 5px 20px rgba(0, 0, 0, 0.3), inset 0 0 20px rgba(255, 255, 255, 0.1)';
+            }, 500);
         }
-        
-        function llegarAPiso(piso) {
+
+        function moverCabina(direccion, pisoDestino) {
+            // Calcular posición bottom (piso 1: 20px, piso 2: 200px, piso 3: 380px)
+            const posiciones = {1: 20, 2: 200, 3: 380};
+            const nuevaPosicion = posiciones[pisoDestino];
+            
+            if (nuevaPosicion !== undefined) {
+                // Duración del movimiento basada en distancia
+                const distancia = Math.abs(pisoDestino - estadoSimulacion.pisoActual);
+                const duracion = distancia * 2000; // 2 segundos por piso
+                
+                elementos.elevatorCabin.style.transition = `bottom ${duracion}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+                elementos.elevatorCabin.style.bottom = `${nuevaPosicion}px`;
+                
+                // Actualizar piso actual durante el movimiento
+                setTimeout(() => {
+                    estadoSimulacion.pisoActual = pisoDestino;
+                    elementos.cabinFloor.textContent = pisoDestino;
+                    elementos.currentFloorDisplay.textContent = pisoDestino;
+                }, duracion);
+            }
+        }
+
+        function llegarAPiso(pisoLlegada) {
             // Detener movimiento
-            estadoSistema.movimiento = 'DETENIDO';
-            estadoSistema.pisoActual = piso;
+            estadoSimulacion.movimiento = 'DETENIDO';
+            elementos.elevatorCabin.classList.remove('moving-up', 'moving-down');
             
-            // Posicionar exactamente
-            const cabina = document.getElementById('cabinaContainer');
-            cabina.style.transition = 'none';
-            cabina.style.bottom = `${posicionesPisos[piso]}px`;
+            // Posicionar exactamente en el piso
+            const posiciones = {1: 20, 2: 200, 3: 380};
+            elementos.elevatorCabin.style.transition = 'bottom 100ms ease-out';
+            elementos.elevatorCabin.style.bottom = `${posiciones[pisoLlegada]}px`;
             
-            // Actualizar displays
-            document.getElementById('displayPiso').textContent = piso;
-            document.getElementById('currentFloor').textContent = piso;
-            document.getElementById('displayEstado').textContent = 'LLEGADO';
-            document.getElementById('estadoSimulacion').textContent = `PISO ${piso} - ESPERANDO`;
-        }
-        
-        function iniciarAperturaPuertas() {
-            if (estadoSistema.emergencia) return;
+            estadoSimulacion.pisoActual = pisoLlegada;
+            elementos.cabinFloor.textContent = pisoLlegada;
+            elementos.currentFloorDisplay.textContent = pisoLlegada;
             
-            estadoSistema.puertas = 'ABRIÉNDOSE';
-            const puertas = document.getElementById('puertas');
-            
-            // Remover clases previas
-            puertas.classList.remove('cerrando');
-            puertas.classList.add('abiertas');
-            
-            // Actualizar estado
-            document.getElementById('displayEstado').textContent = 'ABRIENDO PUERTAS...';
-            document.getElementById('estadoSimulacion').textContent = 'ABRIENDO PUERTAS';
-        }
-        
-        function iniciarTemporizadorCierre(ms) {
-            // Limpiar temporizador anterior
-            if (estadoSistema.temporizadorPuertas) {
-                clearTimeout(estadoSistema.temporizadorPuertas);
-            }
-            
-            // Configurar nuevo temporizador
-            estadoSistema.temporizadorPuertas = setTimeout(() => {
-                if (!estadoSistema.emergencia) {
-                    cerrarPuertas();
-                }
-            }, ms);
-            
-            // Mostrar cuenta regresiva
-            mostrarCuentaRegresiva(ms / 1000);
-        }
-        
-        function cerrarPuertas() {
-            if (estadoSistema.emergencia) return;
-            
-            estadoSistema.puertas = 'CERRÁNDOSE';
-            const puertas = document.getElementById('puertas');
-            
-            // Animación de cierre
-            puertas.classList.remove('abiertas');
-            puertas.classList.add('cerrando');
-            
-            document.getElementById('displayEstado').textContent = 'CERRANDO PUERTAS...';
-            document.getElementById('estadoSimulacion').textContent = 'CERRANDO PUERTAS';
-            
-            // Después de 2 segundos, puertas cerradas
+            // Esperar 0.5s y abrir puertas
             setTimeout(() => {
-                if (!estadoSistema.emergencia) {
-                    estadoSistema.puertas = 'CERRADAS';
-                    puertas.classList.remove('cerrando');
-                    document.getElementById('displayEstado').textContent = 'ESPERANDO';
-                    document.getElementById('estadoSimulacion').textContent = 'ESPERANDO';
+                if (!estadoSimulacion.emergencia) {
+                    abrirPuertas();
+                }
+            }, 500);
+        }
+
+        function abrirPuertas() {
+            if (estadoSimulacion.emergencia) return;
+            
+            estadoSimulacion.puertasAbiertas = true;
+            estadoSimulacion.estado = 'ABRIENDO PUERTAS';
+            
+            elementos.cabinDoors.classList.add('doors-open');
+            elementos.cabinStatus.textContent = 'ABRIENDO PUERTAS...';
+            elementos.currentState.textContent = 'ABRIENDO PUERTAS';
+            
+            // Temporizador visual
+            mostrarTemporizadorPuertas(10, 'Apertura');
+        }
+
+        function iniciarSecuenciaApertura() {
+            elementos.cabinStatus.textContent = 'DESBLOQUEANDO CERRADURAS...';
+        }
+
+        function puertasTotalmenteAbiertas() {
+            estadoSimulacion.estado = 'PUERTAS ABIERTAS';
+            elementos.cabinStatus.textContent = 'PUERTAS ABIERTAS - ESPERANDO';
+            elementos.currentState.textContent = 'ESPERANDO';
+            
+            // Iniciar temporizador de cierre
+            iniciarTemporizadorCierre(10);
+        }
+
+        function mantenerPuertasAbiertas() {
+            // Confirmar estado
+            elementos.cabinStatus.textContent = 'PUERTAS ABIERTAS';
+        }
+
+        function cerrarPuertas() {
+            if (estadoSimulacion.emergencia) return;
+            
+            estadoSimulacion.puertasAbiertas = false;
+            estadoSimulacion.estado = 'CERRANDO PUERTAS';
+            
+            elementos.cabinDoors.classList.remove('doors-open');
+            elementos.cabinStatus.textContent = 'CERRANDO PUERTAS...';
+            elementos.currentState.textContent = 'CERRANDO PUERTAS';
+            
+            // Ocultar temporizador
+            elementos.doorTimer.classList.remove('show');
+            
+            // Después de cerrar, cambiar a ESPERANDO
+            setTimeout(() => {
+                if (!estadoSimulacion.emergencia) {
+                    estadoSimulacion.estado = 'ESPERANDO';
+                    elementos.cabinStatus.textContent = 'ESPERANDO';
+                    elementos.currentState.textContent = 'ESPERANDO';
                 }
             }, 2000);
         }
-        
-        function activarEmergencia() {
-            estadoSistema.emergencia = true;
-            estadoSistema.movimiento = 'DETENIDO';
+
+        function mostrarTemporizadorPuertas(segundos, tipo) {
+            elementos.timerDisplay.textContent = `${segundos}s`;
+            elementos.doorTimer.classList.add('show');
             
-            // Detener cualquier movimiento
-            const cabina = document.getElementById('cabinaContainer');
-            cabina.style.transition = 'none';
-            
-            // Aplicar efectos visuales
-            const cabinaElem = document.getElementById('cabina');
-            cabinaElem.classList.add('emergencia');
-            cabinaElem.classList.remove('moviendose');
-            
-            // Aplicar emergencia a puertas
-            const puertas = document.querySelectorAll('.puerta');
-            puertas.forEach(puerta => puerta.classList.add('emergencia'));
-            
-            // Actualizar displays
-            document.getElementById('displayEstado').textContent = '🚨 EMERGENCIA 🚨';
-            document.getElementById('displayEstado').style.color = '#ff0054';
-            document.getElementById('estadoSimulacion').textContent = 'EMERGENCIA ACTIVADA';
-            document.getElementById('systemStatus').textContent = 'EMERGENCIA';
-            document.getElementById('systemStatus').style.color = '#ff0054';
-            
-            // Limpiar temporizador
-            if (estadoSistema.temporizadorPuertas) {
-                clearTimeout(estadoSistema.temporizadorPuertas);
-            }
-        }
-        
-        function resetearSimulacion() {
-            // Resetear estado
-            estadoSistema = {
-                pisoActual: 1,
-                pisoDestino: null,
-                movimiento: 'DETENIDO',
-                puertas: 'CERRADAS',
-                emergencia: false,
-                llamadasExternas: [0, 0, 0],
-                ordenesInternas: [0, 0, 0],
-                ultimoMensaje: null,
-                conexionActiva: estadoSistema.conexionActiva,
-                temporizadorPuertas: null
-            };
-            
-            // Resetear posición cabina
-            const cabina = document.getElementById('cabinaContainer');
-            cabina.style.transition = 'none';
-            cabina.style.bottom = '20px';
-            
-            // Resetear puertas
-            const puertas = document.getElementById('puertas');
-            puertas.classList.remove('abiertas', 'cerrando');
-            
-            // Resetear cabina
-            const cabinaElem = document.getElementById('cabina');
-            cabinaElem.classList.remove('emergencia', 'moviendose');
-            
-            // Resetear displays
-            document.getElementById('displayPiso').textContent = '1';
-            document.getElementById('displayEstado').textContent = 'ESPERANDO';
-            document.getElementById('displayEstado').style.color = '';
-            document.getElementById('displayDestino').textContent = 'Destino: --';
-            document.getElementById('currentFloor').textContent = '1';
-            document.getElementById('estadoSimulacion').textContent = 'ESPERANDO INICIO';
-            document.getElementById('systemStatus').textContent = 'INICIANDO...';
-            document.getElementById('systemStatus').style.color = '';
-            
-            // Limpiar indicadores de llamada
-            for (let i = 1; i <= 3; i++) {
-                document.getElementById(`llamadaP${i}`).classList.remove('activo');
-            }
-        }
-        
-        // ===============================
-        // FUNCIONES AUXILIARES
-        // ===============================
-        
-        function extraerPiso(texto) {
-            const match = texto.match(/P(\d+)/);
-            return match ? parseInt(match[1]) : null;
-        }
-        
-        function extraerPisoDestino(texto) {
-            // Busca patrones como "Destino P3" o "P3"
-            const match = texto.match(/Destino P(\d+)|P(\d+)/);
-            if (match) {
-                return match[1] ? parseInt(match[1]) : parseInt(match[2]);
-            }
-            return null;
-        }
-        
-        function mostrarLlamadaExterna(piso) {
-            if (piso >= 1 && piso <= 3) {
-                const indicador = document.getElementById(`llamadaP${piso}`);
-                indicador.classList.add('activo');
-                
-                // Apagar después de 5 segundos
-                setTimeout(() => {
-                    indicador.classList.remove('activo');
-                }, 5000);
-            }
-        }
-        
-        function mostrarOrdenInterna(piso) {
-            // Destacar botón interno
-            const boton = document.getElementById(`btnInternal${piso}`);
-            boton.classList.add('activo');
-            
-            setTimeout(() => {
-                boton.classList.remove('activo');
-            }, 3000);
-        }
-        
-        function mostrarCuentaRegresiva(segundos) {
             let contador = segundos;
             const intervalo = setInterval(() => {
-                if (contador > 0 && estadoSistema.puertas === 'ABIERTAS') {
-                    document.getElementById('displayEstado').textContent = `PUERTAS ABIERTAS (${contador}s)`;
-                    contador--;
-                } else {
+                contador--;
+                elementos.timerDisplay.textContent = `${contador}s`;
+                
+                if (contador <= 0) {
                     clearInterval(intervalo);
+                    elementos.doorTimer.classList.remove('show');
                 }
             }, 1000);
         }
-        
-        function actualizarPanelMensajes(mensajes) {
-            const container = document.getElementById('mensajesContainer');
-            container.innerHTML = '';
+
+        function iniciarTemporizadorCierre(segundos) {
+            mostrarTemporizadorPuertas(segundos, 'Cierre');
             
-            mensajes.forEach(mensaje => {
-                const div = document.createElement('div');
-                div.className = 'mensaje-item';
-                
-                const fecha = new Date(mensaje.ts);
-                const hora = fecha.toLocaleTimeString();
-                
-                div.innerHTML = `
-                    <div class="mensaje-header">
-                        <div class="mensaje-time">
-                            <i class="far fa-clock"></i> ${hora}
-                        </div>
-                        <div>Piso: ${mensaje.piso || '-'} | Estado: ${mensaje.estado || '-'}</div>
-                    </div>
-                    <div class="mensaje-content">${mensaje.mensaje || ''}</div>
-                `;
-                
-                container.appendChild(div);
-            });
+            // Programar cierre automático
+            if (estadoSimulacion.temporizadorPuertas) {
+                clearTimeout(estadoSimulacion.temporizadorPuertas);
+            }
+            
+            estadoSimulacion.temporizadorPuertas = setTimeout(() => {
+                cerrarPuertas();
+            }, segundos * 1000);
         }
-        
-        function actualizarClaseMensaje(tipo) {
-            const mensajes = document.querySelectorAll('.mensaje-item');
-            if (mensajes.length > 0) {
-                const ultimo = mensajes[0];
-                ultimo.className = `mensaje-item ${tipo}`;
+
+        function activarEmergencia(razon) {
+            estadoSimulacion.emergencia = true;
+            estadoSimulacion.movimiento = 'DETENIDO';
+            
+            // Detener cualquier temporizador
+            if (estadoSimulacion.temporizadorPuertas) {
+                clearTimeout(estadoSimulacion.temporizadorPuertas);
+            }
+            
+            // Actualizar UI
+            elementos.elevatorCabin.classList.add('emergency');
+            elementos.elevatorCabin.classList.remove('moving-up', 'moving-down');
+            elementos.emergencyReason.textContent = razon;
+            elementos.emergencyPanel.classList.add('show');
+            elementos.cabinStatus.textContent = '🚨 EMERGENCIA';
+            elementos.currentState.textContent = 'EMERGENCIA';
+            elementos.currentState.style.color = '#ef4444';
+            
+            // Desactivar controles
+            elementos.internalBtns.forEach(btn => btn.disabled = true);
+            elementos.callBtns.forEach(btn => btn.disabled = true);
+            elementos.btnOpenDoor.disabled = true;
+        }
+
+        function mantenerEmergencia() {
+            // Solo mantener el estado
+            elementos.cabinStatus.textContent = 'SISTEMA BLOQUEADO';
+        }
+
+        function mostrarLlamadaExterna(piso) {
+            if (!piso) return;
+            
+            // Iluminar botón externo correspondiente
+            elementos.callBtns.forEach(btn => {
+                if (parseInt(btn.dataset.floor) === piso) {
+                    btn.classList.add('active');
+                    setTimeout(() => {
+                        btn.classList.remove('active');
+                    }, 3000);
+                }
+            });
+            
+            // Agregar a cola de llamadas
+            if (!estadoSimulacion.llamadasExternas.includes(piso)) {
+                estadoSimulacion.llamadasExternas.push(piso);
+                actualizarVisualColaLlamadas();
             }
         }
-        
-        function actualizarInterfaz() {
-            // Actualizar estado del sistema en panel
-            document.getElementById('systemStatus').textContent = 
-                estadoSistema.emergencia ? 'EMERGENCIA' : 
-                estadoSistema.movimiento !== 'DETENIDO' ? 'OPERANDO' : 'ESPERANDO';
+
+        function procesarOrdenInterna(piso) {
+            if (!piso) return;
+            
+            // Iluminar botón interno
+            elementos.internalBtns.forEach(btn => {
+                if (parseInt(btn.dataset.floor) === piso) {
+                    btn.classList.add('active');
+                    setTimeout(() => {
+                        btn.classList.remove('active');
+                    }, 3000);
+                }
+            });
+            
+            // Si está detenido, iniciar movimiento inmediato
+            if (estadoSimulacion.movimiento === 'DETENIDO' && !estadoSimulacion.emergencia) {
+                iniciarMovimiento(
+                    piso > estadoSimulacion.pisoActual ? 'SUBIENDO' : 'BAJANDO',
+                    piso
+                );
+            }
         }
-        
-        function configurarControles() {
-            // Configurar eventos para botones de simulación
-            for (let i = 1; i <= 3; i++) {
-                document.getElementById(`btnCall${i}`).addEventListener('click', () => {
-                    mostrarLlamadaExterna(i);
-                });
-                
-                document.getElementById(`btnInternal${i}`).addEventListener('click', () => {
-                    mostrarOrdenInterna(i);
-                    
-                    // Simular cambio de destino si está detenido
-                    if (estadoSistema.movimiento === 'DETENIDO') {
-                        estadoSistema.pisoDestino = i;
-                        document.getElementById('displayDestino').textContent = `Destino: P${i}`;
+
+        function actualizarColaLlamadas(cola) {
+            estadoSimulacion.colaLlamadas = cola.filter(p => p !== 0);
+            actualizarVisualColaLlamadas();
+        }
+
+        function actualizarVisualColaLlamadas() {
+            elementos.queueItems.innerHTML = '';
+            
+            // Mostrar llamadas externas
+            estadoSimulacion.llamadasExternas.forEach(piso => {
+                const div = document.createElement('div');
+                div.className = 'queue-item';
+                div.textContent = piso;
+                elementos.queueItems.appendChild(div);
+            });
+            
+            // Mostrar cola del sistema
+            estadoSimulacion.colaLlamadas.forEach(piso => {
+                const div = document.createElement('div');
+                div.className = 'queue-item';
+                div.textContent = piso;
+                div.style.background = '#3b82f6';
+                elementos.queueItems.appendChild(div);
+            });
+            
+            // Mostrar/ocultar panel según si hay llamadas
+            if (estadoSimulacion.llamadasExternas.length > 0 || estadoSimulacion.colaLlamadas.length > 0) {
+                elementos.callQueue.style.display = 'block';
+            } else {
+                elementos.callQueue.style.display = 'none';
+            }
+        }
+
+        function reiniciarSimulacion() {
+            // Resetear estado
+            estadoSimulacion = {
+                pisoActual: 1,
+                pisoDestino: null,
+                estado: 'ESPERANDO',
+                puertasAbiertas: false,
+                emergencia: false,
+                movimiento: 'DETENIDO',
+                temporizadorPuertas: null,
+                colaLlamadas: [],
+                llamadasExternas: []
+            };
+            
+            // Resetear UI
+            elementos.elevatorCabin.classList.remove('emergency', 'moving-up', 'moving-down');
+            elementos.elevatorCabin.style.bottom = '20px';
+            elementos.cabinDoors.classList.remove('doors-open');
+            elementos.cabinFloor.textContent = '1';
+            elementos.cabinStatus.textContent = 'ESPERANDO';
+            elementos.currentFloorDisplay.textContent = '1';
+            elementos.targetFloorDisplay.textContent = '--';
+            elementos.currentState.textContent = 'ESPERANDO';
+            elementos.currentState.style.color = '';
+            elementos.emergencyPanel.classList.remove('show');
+            elementos.doorTimer.classList.remove('show');
+            
+            // Reactivar controles
+            elementos.internalBtns.forEach(btn => btn.disabled = false);
+            elementos.callBtns.forEach(btn => btn.disabled = false);
+            elementos.btnOpenDoor.disabled = false;
+            
+            // Limpiar cola visual
+            elementos.queueItems.innerHTML = '';
+            elementos.callQueue.style.display = 'none';
+        }
+
+        function sistemaListo() {
+            elementos.cabinStatus.textContent = 'SISTEMA LISTO';
+            elementos.currentState.textContent = 'OPERATIVO';
+            
+            // Efecto visual
+            elementos.elevatorCabin.style.boxShadow = '0 0 30px #10b981';
+            setTimeout(() => {
+                elementos.elevatorCabin.style.boxShadow = 
+                    '0 5px 20px rgba(0, 0, 0, 0.3), inset 0 0 20px rgba(255, 255, 255, 0.1)';
+            }, 1000);
+        }
+
+        function detenerMovimiento() {
+            estadoSimulacion.movimiento = 'DETENIDO';
+            elementos.elevatorCabin.classList.remove('moving-up', 'moving-down');
+            elementos.cabinStatus.textContent = 'DETENIDO';
+        }
+
+        // ===== EVENT LISTENERS =====
+        // Botón abrir puerta manualmente
+        elementos.btnOpenDoor.addEventListener('click', () => {
+            if (!estadoSimulacion.emergencia && estadoSimulacion.movimiento === 'DETENIDO') {
+                abrirPuertas();
+            }
+        });
+
+        // Botones internos
+        elementos.internalBtns.forEach(btn => {
+            if (btn.id !== 'btnOpenDoor') {
+                btn.addEventListener('click', () => {
+                    const piso = parseInt(btn.dataset.floor);
+                    if (!estadoSimulacion.emergencia) {
+                        procesarOrdenInterna(piso);
                     }
                 });
             }
-            
-            // Botón abrir puertas
-            document.getElementById('btnOpenDoor').addEventListener('click', () => {
-                if (!estadoSistema.emergencia) {
-                    iniciarAperturaPuertas();
+        });
+
+        // Botones externos
+        elementos.callBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const piso = parseInt(btn.dataset.floor);
+                if (!estadoSimulacion.emergencia) {
+                    mostrarLlamadaExterna(piso);
                 }
             });
+        });
+
+        // ===== INICIALIZACIÓN FIREBASE =====
+        refMensajes.on("child_added", snapshot => {
+            const data = snapshot.val();
+            if (!data) return;
             
-            // Botón cerrar puertas
-            document.getElementById('btnCloseDoor').addEventListener('click', () => {
-                if (!estadoSistema.emergencia) {
-                    cerrarPuertas();
-                }
-            });
+            const ts = data.ts || 0;
+            const piso = data.piso || "-";
+            const estado = data.estado || "-";
+            const mensaje = data.mensaje || "";
             
-            // Botón emergencia
-            document.getElementById('btnEmergency').addEventListener('click', () => {
-                activarEmergencia();
-            });
-        }
-        
-        function mostrarMensajeInicial() {
-            const container = document.getElementById('mensajesContainer');
-            const div = document.createElement('div');
-            div.className = 'mensaje-item inicio';
-            div.innerHTML = `
-                <div class="mensaje-header">
-                    <div class="mensaje-time">
-                        <i class="far fa-clock"></i> ${new Date().toLocaleTimeString()}
-                    </div>
-                    <div>Piso: 1 | Estado: 0</div>
-                </div>
-                <div class="mensaje-content">Sistema de simulación inicializado. Esperando conexión con Firebase...</div>
-            `;
-            container.appendChild(div);
-        }
+            registrarInicio(ts);
+            const fecha = convertirMillisAFechaReal(ts);
+            agregarEventoTabla(fecha, piso, estado, mensaje);
+        });
+
+        refMensajes.on("value", () => {
+            actualizarEstadoConexion(true);
+        });
+
+        // Manejar desconexión
+        refMensajes.onDisconnect().update({});
+
+        // ===== INICIALIZACIÓN SIMULACIÓN =====
+        // Simular mensaje inicial
+        setTimeout(() => {
+            agregarEventoTabla(
+                new Date().toLocaleTimeString() + ' ' + new Date().toLocaleDateString(),
+                1,
+                0,
+                '=== INICIO SISTEMA ASCENSOR 3 PISOS - CONFIGURACION ESTRICTA ==='
+            );
+            
+            setTimeout(() => {
+                agregarEventoTabla(
+                    new Date().toLocaleTimeString() + ' ' + new Date().toLocaleDateString(),
+                    1,
+                    0,
+                    '=== AUTODIAGNÓSTICO OK ==='
+                );
+            }, 1000);
+        }, 500);
     </script>
 </body>
 </html>
