@@ -985,14 +985,9 @@
             <i class="fas fa-exclamation-triangle"></i>
             <div class="emergency-title">EMERGENCIA ACTIVADA</div>
         </div>
-        <div class="emergency-reason" id="emergencyReason">
-            Sistema detenido por seguridad
-        </div>
-        <div style="color: #fecaca; font-size: 0.9rem;">
-            <i class="fas fa-info-circle"></i>
-            Requiere reinicio físico del sistema
-        </div>
+        <div class="emergency-reason" id="emergencyReason"></div>
     </div>
+iv class="emergency-reason" id="emergencyReason"></div>
 
     <!-- Temporizador de puertas -->
     <div class="door-timer" id="doorTimer">
@@ -1076,6 +1071,10 @@
             internalBtns: document.querySelectorAll('.internal-btn'),
             callBtns: document.querySelectorAll('.call-btn')
         };
+
+        // ===== CONSTANTES DE TIEMPO (leídas desde CSS) =====
+        const doorAnimationTime = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--door-animation-time')) || 800;
+        const movementTimePerFloor = 2000; // 2 segundos por piso
 
         // ===== FUNCIONES DE FIREBASE =====
         function registrarInicio(millisLeido) {
@@ -1199,20 +1198,15 @@
                 entrarEnVentanaInterna();
             }
             
-            // 11. FIN DE VENTANA
-            else if (mensaje.includes('Fin de ventana de puertas')) {
-                finalizarVentanaPuertas();
-            }
-            
-            // 12. EMERGENCIA
-            else if (mensaje.includes('!!! ENTRANDO EN ESTADO_EMERGENCIA:')) {
-                const razon = mensaje.split(': ')[1] || 'Razón desconocida';
+            // 11. ESTADO DE EMERGENCIA
+            else if (mensaje.includes('[ESTADO_EMERGENCIA]')) {
+                const razon = mensaje.replace('[ESTADO_EMERGENCIA]', '').trim();
                 activarEmergencia(razon);
             }
             
-            // 13. ESTADO DE EMERGENCIA
-            else if (mensaje.includes('[ESTADO_EMERGENCIA]')) {
-                mantenerEmergencia();
+            // 12. FIN DE VENTANA
+            else if (mensaje.includes('Fin de ventana de puertas')) {
+                finalizarVentanaPuertas();
             }
             
             // 14. LLAMADAS EXTERNAS
@@ -1310,7 +1304,7 @@
             
             // Calcular tiempo de movimiento basado en distancia
             const distancia = Math.abs(pisoDestino - estadoSimulacion.pisoActual);
-            const tiempoMovimiento = distancia * 2000; // 2 segundos por piso
+            const tiempoMovimiento = distancia * movementTimePerFloor;
             
             // Actualizar piso actual al final del movimiento
             setTimeout(() => {
@@ -1456,7 +1450,7 @@
                         elementos.currentState.textContent = 'ESPERANDO';
                     }
                 }
-            }, 800); // Tiempo de animación de cierre
+            }, doorAnimationTime); // Usar la constante de tiempo
         }
 
         function iniciarTemporizadorApertura(segundos) {
@@ -1512,7 +1506,7 @@
             }, 1000);
         }
 
-        function activarEmergencia(razon) {
+        function activarEmergencia() {
             estadoSimulacion.emergencia = true;
             estadoSimulacion.movimiento = 'DETENIDO';
             estadoSimulacion.enVentanaInterna = false;
@@ -1526,18 +1520,17 @@
             if (estadoSimulacion.temporizadorDisplay) {
                 clearInterval(estadoSimulacion.temporizadorDisplay);
                 estadoSimulacion.temporizadorDisplay = null;
-            }
+            } 'Sistema detenido.Esper reinicio físic.'
             
             // Actualizar UI
             elementos.elevatorCabin.classList.add('emergency');
             elementos.elevatorCabin.classList.remove('moving-up', 'moving-down');
-            elementos.emergencyReason.textContent = razon;
+            elementos.emergencyReason.textContent = 'Sistema detenido. Esperar reinicio físico.';
             elementos.emergencyPanel.classList.add('show');
             elementos.cabinStatus.textContent = '🚨 EMERGENCIA';
             elementos.currentState.textContent = 'EMERGENCIA';
             elementos.currentState.style.color = '#ef4444';
             
-            // Desactivar controles
             elementos.internalBtns.forEach(btn => btn.disabled = true);
             elementos.callBtns.forEach(btn => btn.disabled = true);
             elementos.btnOpenDoor.disabled = true;
