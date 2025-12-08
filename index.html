@@ -3,11 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Control de Ascensor - Monitor Inteligente</title>
+    <title>SIMULADOR DE ASCENSOR 3 PISOS - MONITOR EN TIEMPO REAL</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
+        :root {
+            --color-primary: #2c3e50;
+            --color-secondary: #34495e;
+            --color-accent: #3498db;
+            --color-emergency: #e74c3c;
+            --color-success: #2ecc71;
+            --color-warning: #f39c12;
+            --color-metal: #7f8c8d;
+            --color-cabin: #ecf0f1;
+            --color-door: #95a5a6;
+            --color-floor: #bdc3c7;
+            --shadow-deep: 0 10px 30px rgba(0, 0, 0, 0.3);
+            --shadow-light: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -16,277 +32,420 @@
         }
 
         body {
-            display: flex;
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            color: #ecf0f1;
             min-height: 100vh;
-            background: linear-gradient(135deg, #1a2a3a 0%, #0d1824 100%);
-            color: #e0e0e0;
+            display: flex;
+            padding: 20px;
             overflow-x: hidden;
         }
 
-        /* Panel izquierdo - Mensajes Firebase */
-        .messages-panel {
-            width: 35%;
-            background: rgba(10, 20, 30, 0.85);
-            border-right: 2px solid rgba(255, 255, 255, 0.1);
+        .container {
             display: flex;
-            flex-direction: column;
-            padding: 25px;
-            overflow: hidden;
-            box-shadow: 5px 0 15px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 1600px;
+            margin: 0 auto;
+            gap: 30px;
         }
 
-        .messages-panel h2 {
-            color: #4fc3f7;
-            font-size: 1.8rem;
-            margin-bottom: 20px;
+        /* PANEL DE MENSAJES - IZQUIERDA */
+        .messages-panel {
+            flex: 1;
+            min-width: 450px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: var(--shadow-deep);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
             padding-bottom: 15px;
-            border-bottom: 2px solid rgba(79, 195, 247, 0.3);
+            border-bottom: 2px solid var(--color-accent);
+        }
+
+        .panel-title {
+            font-size: 1.8rem;
+            color: var(--color-accent);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .panel-title i {
+            color: var(--color-accent);
+        }
+
+        .connection-status {
             display: flex;
             align-items: center;
             gap: 10px;
-        }
-
-        .messages-panel h2 i {
-            color: #ffb74d;
-        }
-
-        .firebase-status {
+            padding: 8px 15px;
             background: rgba(0, 0, 0, 0.3);
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50px;
+            font-size: 0.9rem;
         }
 
-        .firebase-status .status-indicator {
+        .status-dot {
             width: 12px;
             height: 12px;
             border-radius: 50%;
-            background-color: #4caf50;
-            box-shadow: 0 0 8px #4caf50;
+            background: #e74c3c;
             animation: pulse 2s infinite;
         }
 
-        @keyframes pulse {
-            0% { opacity: 0.7; }
-            50% { opacity: 1; }
-            100% { opacity: 0.7; }
+        .status-dot.connected {
+            background: var(--color-success);
+            animation: none;
         }
 
+        @keyframes pulse {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+
+        /* CONTENEDOR DE MENSAJES */
         .messages-container {
             flex: 1;
             overflow-y: auto;
-            background: rgba(0, 0, 0, 0.25);
+            padding-right: 10px;
+            max-height: calc(100vh - 200px);
+        }
+
+        .messages-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .messages-container::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
             border-radius: 10px;
-            padding: 15px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        .message-item {
-            background: rgba(30, 40, 50, 0.8);
-            border-radius: 8px;
-            padding: 15px;
+        .messages-container::-webkit-scrollbar-thumb {
+            background: var(--color-accent);
+            border-radius: 10px;
+        }
+
+        .message {
+            background: rgba(255, 255, 255, 0.07);
+            padding: 18px;
             margin-bottom: 15px;
-            border-left: 4px solid #4fc3f7;
-            animation: fadeIn 0.5s ease-out;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
-            transition: transform 0.2s;
+            border-radius: 12px;
+            border-left: 4px solid var(--color-accent);
+            animation: slideIn 0.4s ease;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
         }
 
-        .message-item:hover {
-            transform: translateY(-3px);
+        .message:hover {
+            transform: translateX(5px);
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: var(--shadow-light);
+        }
+
+        .message::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(52, 152, 219, 0.3), transparent);
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 0.85rem;
+            color: #bdc3c7;
         }
 
         .message-time {
-            font-size: 0.8rem;
-            color: #90a4ae;
-            margin-bottom: 5px;
             display: flex;
-            justify-content: space-between;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .message-type {
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-transform: uppercase;
         }
 
         .message-content {
             font-size: 1rem;
-            line-height: 1.4;
-            color: #ffffff;
+            line-height: 1.5;
+            color: #ecf0f1;
         }
 
+        /* TIPOS DE MENSAJES */
         .message-movement {
-            border-left-color: #81c784;
+            border-left-color: #3498db;
+        }
+        .message-movement .message-type {
+            background: rgba(52, 152, 219, 0.2);
+            color: #3498db;
         }
 
         .message-door {
-            border-left-color: #ffb74d;
+            border-left-color: #2ecc71;
         }
-
-        .message-emergency {
-            border-left-color: #f44336;
-            animation: emergencyFlash 2s infinite;
-        }
-
-        @keyframes emergencyFlash {
-            0%, 100% { background-color: rgba(30, 40, 50, 0.8); }
-            50% { background-color: rgba(244, 67, 54, 0.3); }
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Panel derecho - Simulación del Ascensor */
-        .elevator-panel {
-            width: 65%;
-            display: flex;
-            flex-direction: column;
-            padding: 25px;
-            align-items: center;
-        }
-
-        .panel-title {
-            color: #ffffff;
-            font-size: 2.2rem;
-            margin-bottom: 30px;
-            text-align: center;
-            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-            letter-spacing: 1px;
-        }
-
-        .elevator-container {
-            display: flex;
-            width: 100%;
-            max-width: 800px;
-            background: rgba(20, 30, 40, 0.9);
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            position: relative;
-            overflow: hidden;
-        }
-
-        /* Edificio y ascensor */
-        .building {
-            flex: 2;
-            background: linear-gradient(to bottom, #2c3e50, #34495e);
-            border-radius: 15px;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-            padding: 10px;
-            border: 2px solid #1a252f;
-            box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5);
-        }
-
-        .floor {
-            flex: 1;
-            border-bottom: 3px solid #7f8c8d;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 20px;
-            position: relative;
-        }
-
-        .floor:last-child {
-            border-bottom: none;
-        }
-
-        .floor-label {
-            color: #ecf0f1;
-            font-weight: bold;
-            font-size: 1.2rem;
-            background: rgba(0, 0, 0, 0.3);
-            padding: 8px 15px;
-            border-radius: 5px;
-            min-width: 100px;
-            text-align: center;
-        }
-
-        .floor-indicator {
-            color: #3498db;
-            font-weight: bold;
-            font-size: 1rem;
-            background: rgba(0, 0, 0, 0.5);
-            padding: 5px 10px;
-            border-radius: 5px;
-        }
-
-        .elevator-shaft {
-            position: absolute;
-            right: 30px;
-            top: 10px;
-            bottom: 10px;
-            width: 220px;
-            background: rgba(0, 0, 0, 0.6);
-            border-radius: 10px;
-            overflow: hidden;
-            border: 2px solid #1a252f;
-        }
-
-        .elevator-cabin {
-            position: absolute;
-            bottom: 0;
-            width: 200px;
-            height: 180px;
-            background: linear-gradient(to bottom, #bdc3c7, #95a5a6);
-            left: 10px;
-            border-radius: 8px;
-            transition: bottom 2s ease-in-out;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
-        }
-
-        .elevator-roof {
-            height: 15px;
-            background: #34495e;
-            border-bottom: 2px solid #2c3e50;
-        }
-
-        .elevator-display {
-            height: 40px;
-            background: #2c3e50;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: #ecf0f1;
-            font-weight: bold;
-            font-size: 1.4rem;
-            border-bottom: 2px solid #1a252f;
-        }
-
-        .elevator-display span {
+        .message-door .message-type {
+            background: rgba(46, 204, 113, 0.2);
             color: #2ecc71;
         }
 
-        .elevator-doors {
-            flex: 1;
+        .message-emergency {
+            border-left-color: #e74c3c;
+            background: rgba(231, 76, 60, 0.1);
+        }
+        .message-emergency .message-type {
+            background: rgba(231, 76, 60, 0.3);
+            color: #e74c3c;
+        }
+
+        .message-call {
+            border-left-color: #9b59b6;
+        }
+        .message-call .message-type {
+            background: rgba(155, 89, 182, 0.2);
+            color: #9b59b6;
+        }
+
+        .message-system {
+            border-left-color: #f39c12;
+        }
+        .message-system .message-type {
+            background: rgba(243, 156, 18, 0.2);
+            color: #f39c12;
+        }
+
+        /* SIMULADOR DE ASCENSOR - DERECHA */
+        .elevator-simulator {
+            flex: 1.5;
+            min-width: 600px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: var(--shadow-deep);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             display: flex;
+            flex-direction: column;
+        }
+
+        .simulator-header {
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .simulator-title {
+            font-size: 2.2rem;
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .simulator-subtitle {
+            color: #bdc3c7;
+            font-size: 1rem;
+        }
+
+        /* ESTRUCTURA DEL EDIFICIO */
+        .building-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        .building {
+            width: 500px;
+            height: 700px;
+            background: var(--color-primary);
+            border-radius: 15px;
             position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.5);
+            border: 5px solid var(--color-secondary);
+        }
+
+        /* ESTRUCTURA METÁLICA - TUBOS CUADRADOS */
+        .metal-frame {
+            position: absolute;
+            z-index: 1;
+        }
+
+        .vertical-beam {
+            width: 15px;
+            background: linear-gradient(90deg, var(--color-metal), #95a5a6, var(--color-metal));
+            border: 2px solid #2c3e50;
+            border-radius: 3px;
+        }
+
+        .horizontal-beam {
+            height: 15px;
+            background: linear-gradient(180deg, var(--color-metal), #95a5a6, var(--color-metal));
+            border: 2px solid #2c3e50;
+            border-radius: 3px;
+        }
+
+        /* PISOS */
+        .floor {
+            position: absolute;
+            width: 100%;
+            height: 233px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-bottom: 3px solid var(--color-secondary);
+        }
+
+        .floor-label {
+            position: absolute;
+            left: 30px;
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--color-accent);
+            background: rgba(0, 0, 0, 0.5);
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            border: 3px solid var(--color-accent);
+            z-index: 2;
+        }
+
+        .floor-platform {
+            width: 350px;
+            height: 180px;
+            background: var(--color-floor);
+            position: relative;
+            border-radius: 8px;
+            border: 2px solid #95a5a6;
+            overflow: hidden;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+
+        /* SHAFT (POZO DEL ASCENSOR) */
+        .elevator-shaft {
+            position: absolute;
+            right: 60px;
+            width: 220px;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            border-left: 3px solid var(--color-metal);
+            border-right: 3px solid var(--color-metal);
+        }
+
+        /* CABINA DEL ASCENSOR */
+        .elevator-cabin {
+            position: absolute;
+            width: 180px;
+            height: 200px;
+            background: linear-gradient(135deg, var(--color-cabin), #dfe6e9);
+            border-radius: 10px;
+            transition: bottom 2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 10;
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.5);
+            border: 4px solid #bdc3c7;
+            left: 20px;
+            overflow: hidden;
+        }
+
+        .cabin-roof {
+            position: absolute;
+            top: 0;
+            width: 100%;
+            height: 15px;
+            background: linear-gradient(90deg, #7f8c8d, #95a5a6);
+            border-bottom: 2px solid #636e72;
+        }
+
+        .cabin-floor {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 15px;
+            background: linear-gradient(90deg, #636e72, #7f8c8d);
+            border-top: 2px solid #2d3436;
+        }
+
+        .cabin-display {
+            position: absolute;
+            top: 20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            z-index: 11;
+        }
+
+        .cabin-floor-number {
+            font-size: 2.8rem;
+            font-weight: bold;
+            color: var(--color-primary);
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            background: rgba(255, 255, 255, 0.9);
+            display: inline-block;
+            padding: 5px 20px;
+            border-radius: 10px;
+            border: 3px solid var(--color-accent);
+        }
+
+        .cabin-status {
+            font-size: 1rem;
+            color: var(--color-primary);
+            margin-top: 5px;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 3px 10px;
+            border-radius: 15px;
+            display: inline-block;
+            font-weight: bold;
+        }
+
+        /* PUERTAS DE LA CABINA */
+        .cabin-doors {
+            position: absolute;
+            top: 50px;
+            width: 100%;
+            height: 130px;
+            display: flex;
+            overflow: hidden;
         }
 
         .door {
             width: 50%;
             height: 100%;
-            background: linear-gradient(to right, #7f8c8d, #95a5a6);
-            border: 2px solid #5d6d7e;
-            transition: transform 2s ease-in-out;
+            background: linear-gradient(135deg, var(--color-door), #7f8c8d);
             position: relative;
+            transition: transform 2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border: 2px solid #636e72;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
         }
 
         .door-left {
             transform-origin: left center;
-            border-right: 1px solid #5d6d7e;
+            border-right: 1px solid #2d3436;
         }
 
         .door-right {
             transform-origin: right center;
-            border-left: 1px solid #5d6d7e;
+            border-left: 1px solid #2d3436;
         }
 
         .door-handle {
@@ -294,8 +453,8 @@
             top: 50%;
             width: 10px;
             height: 30px;
-            background: #d4ac0d;
-            border-radius: 3px;
+            background: #2d3436;
+            border-radius: 5px;
         }
 
         .door-left .door-handle {
@@ -308,349 +467,337 @@
             transform: translateY(-50%);
         }
 
-        /* Panel de control */
-        .control-panel {
-            flex: 1;
-            margin-left: 30px;
-            background: rgba(30, 40, 50, 0.9);
-            border-radius: 15px;
-            padding: 25px;
-            display: flex;
-            flex-direction: column;
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+        .door-open .door-left {
+            transform: perspective(800px) rotateY(-90deg) translateX(-10px);
         }
 
-        .control-panel h3 {
-            color: #4fc3f7;
-            margin-bottom: 20px;
-            text-align: center;
-            font-size: 1.5rem;
-            border-bottom: 1px solid rgba(79, 195, 247, 0.3);
-            padding-bottom: 10px;
+        .door-open .door-right {
+            transform: perspective(800px) rotateY(90deg) translateX(10px);
         }
 
-        .floor-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            margin-bottom: 30px;
-        }
-
-        .floor-btn {
-            padding: 15px;
-            border: none;
-            border-radius: 10px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s;
-            background: linear-gradient(to bottom, #3498db, #2980b9);
-            color: white;
-            box-shadow: 0 5px 0 #1f618d;
-        }
-
-        .floor-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 0 #1f618d;
-        }
-
-        .floor-btn:active {
-            transform: translateY(2px);
-            box-shadow: 0 3px 0 #1f618d;
-        }
-
-        .door-controls {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 30px;
-        }
-
-        .door-btn {
-            flex: 1;
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s;
-            background: linear-gradient(to bottom, #ffb74d, #ff9800);
-            color: #333;
-            box-shadow: 0 4px 0 #e65100;
-        }
-
-        .door-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 0 #e65100;
-        }
-
-        .emergency-section {
-            margin-top: auto;
-        }
-
-        .emergency-btn {
-            width: 100%;
-            padding: 18px;
-            border: none;
-            border-radius: 10px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s;
-            background: linear-gradient(to bottom, #e74c3c, #c0392b);
-            color: white;
-            box-shadow: 0 6px 0 #922b21;
-            letter-spacing: 1px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .emergency-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 9px 0 #922b21;
-            background: linear-gradient(to bottom, #ff5a4a, #d43c2b);
-        }
-
-        .emergency-btn:active {
-            transform: translateY(3px);
-            box-shadow: 0 3px 0 #922b21;
-        }
-
-        .status-indicators {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 15px;
-            border-radius: 10px;
-            margin-top: 25px;
-        }
-
-        .status-item {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .status-item:last-child {
-            margin-bottom: 0;
-            padding-bottom: 0;
-            border-bottom: none;
-        }
-
-        .status-value {
-            color: #2ecc71;
-            font-weight: bold;
-        }
-
-        /* Estados de emergencia */
+        /* EMERGENCIA */
         .emergency-active .elevator-cabin {
-            animation: emergencyAlarm 1.5s infinite;
-            background: linear-gradient(to bottom, #e74c3c, #c0392b);
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            animation: emergencyFlash 1s infinite;
+            border-color: #e74c3c;
         }
 
-        @keyframes emergencyAlarm {
+        .emergency-active .cabin-floor-number {
+            color: #e74c3c;
+            border-color: #e74c3c;
+        }
+
+        @keyframes emergencyFlash {
             0%, 100% { box-shadow: 0 0 20px rgba(231, 76, 60, 0.7); }
             50% { box-shadow: 0 0 40px rgba(231, 76, 60, 1); }
         }
 
-        .emergency-message {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: #e74c3c;
-            color: white;
-            font-weight: bold;
-            font-size: 1.5rem;
-            text-align: center;
+        /* PANEL DE CONTROL */
+        .control-panel {
+            margin-top: 30px;
+            padding: 25px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .control-title {
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+            color: var(--color-accent);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+
+        .control-button {
             padding: 15px;
-            transform: translateY(-100%);
-            transition: transform 0.5s;
-            z-index: 100;
-            letter-spacing: 1px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
-        .emergency-active .emergency-message {
-            transform: translateY(0);
+        .control-button:hover {
+            transform: translateY(-3px);
+            background: linear-gradient(135deg, var(--color-accent), #2980b9);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
         }
 
-        /* Responsive */
+        .control-button:active {
+            transform: translateY(1px);
+        }
+
+        .control-button.emergency {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            grid-column: span 2;
+        }
+
+        .control-button.emergency:hover {
+            background: linear-gradient(135deg, #ff6b6b, #e74c3c);
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+        }
+
+        .control-icon {
+            font-size: 1.5rem;
+        }
+
+        /* PANEL DE ESTADO */
+        .status-panel {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .status-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid var(--color-accent);
+        }
+
+        .status-label {
+            font-size: 0.9rem;
+            color: #bdc3c7;
+            margin-bottom: 5px;
+        }
+
+        .status-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--color-accent);
+        }
+
+        /* ANIMACIONES */
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 5px currentColor; }
+            50% { box-shadow: 0 0 20px currentColor; }
+        }
+
+        /* RESPONSIVE */
         @media (max-width: 1200px) {
-            body {
+            .container {
                 flex-direction: column;
             }
             
-            .messages-panel, .elevator-panel {
+            .messages-panel, .elevator-simulator {
+                min-width: 100%;
+            }
+            
+            .building {
+                width: 400px;
+                height: 600px;
+            }
+            
+            .floor {
+                height: 200px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .controls-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .building {
                 width: 100%;
+                max-width: 350px;
+                height: 500px;
             }
             
-            .messages-panel {
-                max-height: 40vh;
-                border-right: none;
-                border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+            .floor {
+                height: 166px;
             }
             
-            .elevator-container {
-                flex-direction: column;
+            .floor-platform {
+                width: 250px;
+                height: 130px;
             }
             
-            .control-panel {
-                margin-left: 0;
-                margin-top: 30px;
+            .elevator-shaft {
+                width: 180px;
+                right: 40px;
             }
-        }
-
-        /* Estilos para botones activos */
-        .active-floor {
-            background: linear-gradient(to bottom, #2ecc71, #27ae60) !important;
-            box-shadow: 0 5px 0 #1e8449 !important;
-        }
-
-        .active-call {
-            animation: callBlink 1.5s infinite;
-        }
-
-        @keyframes callBlink {
-            0%, 100% { background-color: rgba(52, 152, 219, 0.8); }
-            50% { background-color: rgba(41, 128, 185, 1); }
-        }
-
-        /* Efectos visuales para movimiento */
-        .moving-up {
-            box-shadow: 0 0 15px rgba(46, 204, 113, 0.8) !important;
-        }
-
-        .moving-down {
-            box-shadow: 0 0 15px rgba(52, 152, 219, 0.8) !important;
+            
+            .elevator-cabin {
+                width: 150px;
+                height: 170px;
+            }
+            
+            .cabin-floor-number {
+                font-size: 2rem;
+            }
         }
     </style>
 </head>
 <body>
-    <!-- Panel izquierdo - Mensajes de Firebase -->
-    <div class="messages-panel">
-        <h2><i class="fas fa-broadcast-tower"></i> Panel de Monitoreo - Firebase</h2>
-        
-        <div class="firebase-status">
-            <div>
-                <strong>Estado Conexión:</strong>
-                <span id="connection-status">Conectando...</span>
-            </div>
-            <div class="status-indicator" id="status-indicator"></div>
-        </div>
-        
-        <div class="messages-container" id="messages-container">
-            <!-- Los mensajes de Firebase aparecerán aquí -->
-            <div class="message-item">
-                <div class="message-time">Sistema | <span id="current-time">--:--:--</span></div>
-                <div class="message-content">Esperando conexión con Firebase...</div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Panel derecho - Simulación del Ascensor -->
-    <div class="elevator-panel">
-        <h1 class="panel-title">Sistema de Control de Ascensor</h1>
-        
-        <div class="elevator-container" id="elevator-container">
-            <!-- Mensaje de emergencia -->
-            <div class="emergency-message" id="emergency-message">
-                <i class="fas fa-exclamation-triangle"></i> 
-                EMERGENCIA ACTIVADA - SISTEMA DETENIDO 
-                <i class="fas fa-exclamation-triangle"></i>
+    <div class="container">
+        <!-- PANEL DE MENSAJES - IZQUIERDA -->
+        <div class="messages-panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <i class="fas fa-comments"></i>
+                    MENSAJES DEL ASCENSOR
+                </div>
+                <div class="connection-status">
+                    <div class="status-dot" id="statusDot"></div>
+                    <span id="connectionText">Conectando...</span>
+                </div>
             </div>
             
-            <!-- Edificio y ascensor -->
-            <div class="building">
-                <!-- Piso 3 -->
-                <div class="floor" id="floor-3">
-                    <div class="floor-label">PISO 3</div>
-                    <div class="floor-indicator" id="indicator-3">Disponible</div>
-                </div>
-                
-                <!-- Piso 2 -->
-                <div class="floor" id="floor-2">
-                    <div class="floor-label">PISO 2</div>
-                    <div class="floor-indicator" id="indicator-2">Disponible</div>
-                </div>
-                
-                <!-- Piso 1 -->
-                <div class="floor" id="floor-1">
-                    <div class="floor-label">PISO 1</div>
-                    <div class="floor-indicator" id="indicator-1">Disponible</div>
-                </div>
-                
-                <!-- Hueco del ascensor -->
-                <div class="elevator-shaft">
-                    <div class="elevator-cabin" id="elevator-cabin">
-                        <div class="elevator-roof"></div>
-                        <div class="elevator-display" id="elevator-display">
-                            PISO: <span id="current-floor">1</span>
+            <div class="messages-container" id="messagesContainer">
+                <!-- Los mensajes se cargarán aquí dinámicamente -->
+            </div>
+        </div>
+        
+        <!-- SIMULADOR DE ASCENSOR - DERECHA -->
+        <div class="elevator-simulator">
+            <div class="simulator-header">
+                <h1 class="simulator-title">ASCENSOR 3 PISOS</h1>
+                <div class="simulator-subtitle">Simulación en tiempo real sincronizada con Firebase</div>
+            </div>
+            
+            <!-- ESTRUCTURA DEL EDIFICIO -->
+            <div class="building-container">
+                <div class="building" id="building">
+                    <!-- Estructura metálica -->
+                    <div class="metal-frame vertical-beam" style="left: 50px; height: 100%;"></div>
+                    <div class="metal-frame vertical-beam" style="right: 50px; height: 100%;"></div>
+                    <div class="metal-frame horizontal-beam" style="top: 233px; width: 100%;"></div>
+                    <div class="metal-frame horizontal-beam" style="top: 466px; width: 100%;"></div>
+                    
+                    <!-- Piso 3 -->
+                    <div class="floor" style="top: 0;">
+                        <div class="floor-label">3</div>
+                        <div class="floor-platform"></div>
+                    </div>
+                    
+                    <!-- Piso 2 -->
+                    <div class="floor" style="top: 233px;">
+                        <div class="floor-label">2</div>
+                        <div class="floor-platform"></div>
+                    </div>
+                    
+                    <!-- Piso 1 -->
+                    <div class="floor" style="top: 466px;">
+                        <div class="floor-label">1</div>
+                        <div class="floor-platform"></div>
+                    </div>
+                    
+                    <!-- Pozo del ascensor -->
+                    <div class="elevator-shaft"></div>
+                    
+                    <!-- Cabina del ascensor -->
+                    <div class="elevator-cabin" id="elevatorCabin" style="bottom: 20px;">
+                        <div class="cabin-roof"></div>
+                        <div class="cabin-floor"></div>
+                        
+                        <div class="cabin-display">
+                            <div class="cabin-floor-number" id="cabinFloor">1</div>
+                            <div class="cabin-status" id="cabinStatus">ESPERANDO</div>
                         </div>
-                        <div class="elevator-doors">
-                            <div class="door door-left" id="door-left"></div>
-                            <div class="door door-right" id="door-right"></div>
+                        
+                        <div class="cabin-doors">
+                            <div class="door door-left">
+                                <div class="door-handle"></div>
+                            </div>
+                            <div class="door door-right">
+                                <div class="door-handle"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
             
-            <!-- Panel de control -->
+            <!-- PANEL DE CONTROL -->
             <div class="control-panel">
-                <h3><i class="fas fa-sliders-h"></i> Panel de Control</h3>
-                
-                <div class="floor-buttons">
-                    <button class="floor-btn" data-floor="3">PISO 3</button>
-                    <button class="floor-btn" data-floor="2">PISO 2</button>
-                    <button class="floor-btn" data-floor="1">PISO 1</button>
+                <div class="control-title">
+                    <i class="fas fa-gamepad"></i>
+                    CONTROLES DE SIMULACIÓN
                 </div>
                 
-                <div class="door-controls">
-                    <button class="door-btn" id="open-door-btn">
-                        <i class="fas fa-door-open"></i> ABRIR PUERTAS
+                <div class="controls-grid">
+                    <button class="control-button" id="btnCall1">
+                        <i class="control-icon fas fa-arrow-circle-up"></i>
+                        LLAMAR PISO 1
                     </button>
-                    <button class="door-btn" id="close-door-btn">
-                        <i class="fas fa-door-closed"></i> CERRAR PUERTAS
+                    <button class="control-button" id="btnCall2">
+                        <i class="control-icon fas fa-arrow-circle-up"></i>
+                        LLAMAR PISO 2
+                    </button>
+                    <button class="control-button" id="btnCall3">
+                        <i class="control-icon fas fa-arrow-circle-up"></i>
+                        LLAMAR PISO 3
+                    </button>
+                    <button class="control-button" id="btnInternal1">
+                        <i class="control-icon fas fa-door-closed"></i>
+                        INTERNO P1
+                    </button>
+                    <button class="control-button" id="btnInternal2">
+                        <i class="control-icon fas fa-door-closed"></i>
+                        INTERNO P2
+                    </button>
+                    <button class="control-button" id="btnInternal3">
+                        <i class="control-icon fas fa-door-closed"></i>
+                        INTERNO P3
+                    </button>
+                    <button class="control-button" id="btnOpenDoor">
+                        <i class="control-icon fas fa-door-open"></i>
+                        ABRIR PUERTA
+                    </button>
+                    <button class="control-button emergency" id="btnEmergency">
+                        <i class="control-icon fas fa-exclamation-triangle"></i>
+                        EMERGENCIA
                     </button>
                 </div>
                 
-                <div class="status-indicators">
+                <div class="status-panel">
                     <div class="status-item">
-                        <span>Estado:</span>
-                        <span class="status-value" id="elevator-status">ESPERANDO</span>
+                        <div class="status-label">ESTADO ACTUAL</div>
+                        <div class="status-value" id="currentState">ESPERANDO</div>
                     </div>
                     <div class="status-item">
-                        <span>Destino:</span>
-                        <span class="status-value" id="destination-display">--</span>
+                        <div class="status-label">PISO DESTINO</div>
+                        <div class="status-value" id="targetFloor">--</div>
                     </div>
                     <div class="status-item">
-                        <span>Puertas:</span>
-                        <span class="status-value" id="door-status">CERRADAS</span>
+                        <div class="status-label">PUERTAS</div>
+                        <div class="status-value" id="doorsStatus">CERRADAS</div>
                     </div>
                     <div class="status-item">
-                        <span>Modo:</span>
-                        <span class="status-value" id="mode-display">NORMAL</span>
+                        <div class="status-label">COLA LLAMADAS</div>
+                        <div class="status-value" id="callQueue">[0, 0]</div>
                     </div>
-                </div>
-                
-                <div class="emergency-section">
-                    <button class="emergency-btn" id="emergency-btn">
-                        <i class="fas fa-exclamation-triangle"></i> MODO EMERGENCIA
-                    </button>
                 </div>
             </div>
-        </div>
-        
-        <div style="margin-top: 30px; text-align: center; color: #90a4ae; font-size: 0.9rem;">
-            <p><i class="fas fa-info-circle"></i> Sistema de ascensor simulado con integración Firebase en tiempo real</p>
         </div>
     </div>
 
     <script>
-        // Configuración de Firebase con las credenciales proporcionadas
+        // ============================================
+        // CONFIGURACIÓN DE FIREBASE
+        // ============================================
         const firebaseConfig = {
             apiKey: "AIzaSyAU31I1rNQCDLxG-ayjKS61uTo6oUuCmCA",
             authDomain: "monitor-ascensor.firebaseapp.com",
@@ -665,595 +812,632 @@
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
         
-        // Variables de estado del ascensor
-        let currentFloor = 1;
-        let destinationFloor = null;
-        let isMoving = false;
-        let isDoorOpen = false;
-        let isEmergencyMode = false;
-        let movementDirection = null; // 'up' o 'down'
-        let doorTimer = null;
-        let externalCalls = {1: false, 2: false, 3: false};
-        let internalOrders = {1: false, 2: false, 3: false};
+        // ============================================
+        // VARIABLES DE ESTADO GLOBAL
+        // ============================================
+        const state = {
+            // Estado del ascensor
+            currentFloor: 1,
+            targetFloor: null,
+            isMoving: false,
+            direction: null, // 'up' o 'down'
+            doorsOpen: false,
+            emergency: false,
+            
+            // Estado de llamadas
+            externalCalls: [0, 0], // [slot1, slot2]
+            internalCall: 0,
+            
+            // Temporizadores
+            doorTimer: null,
+            movementTimer: null,
+            
+            // Conexión
+            connected: false,
+            lastMessageTime: null,
+            messageCount: 0
+        };
         
-        // Referencias a elementos DOM
-        const elevatorCabin = document.getElementById('elevator-cabin');
-        const elevatorDisplay = document.getElementById('elevator-display');
-        const currentFloorSpan = document.getElementById('current-floor');
-        const doorLeft = document.getElementById('door-left');
-        const doorRight = document.getElementById('door-right');
-        const elevatorContainer = document.getElementById('elevator-container');
-        const emergencyMessage = document.getElementById('emergency-message');
-        const messagesContainer = document.getElementById('messages-container');
-        const connectionStatus = document.getElementById('connection-status');
-        const statusIndicator = document.getElementById('status-indicator');
-        const elevatorStatus = document.getElementById('elevator-status');
-        const destinationDisplay = document.getElementById('destination-display');
-        const doorStatus = document.getElementById('door-status');
-        const modeDisplay = document.getElementById('mode-display');
-        const currentTimeSpan = document.getElementById('current-time');
-        
-        // Configurar altura de los pisos (en píxeles)
-        const floorHeight = 180; // Altura de cada piso (igual a la altura de la cabina)
-        
-        // Inicializar la posición del ascensor
-        updateElevatorPosition();
-        
-        // Actualizar la hora actual
-        function updateCurrentTime() {
-            const now = new Date();
-            const timeString = now.toLocaleTimeString();
-            currentTimeSpan.textContent = timeString;
-        }
-        
-        setInterval(updateCurrentTime, 1000);
-        updateCurrentTime();
-        
-        // Conectar a Firebase y escuchar mensajes
+        // ============================================
+        // FUNCIONES DE MANEJO DE FIREBASE
+        // ============================================
         function initializeFirebase() {
             const messagesRef = database.ref('messages');
             
-            messagesRef.on('child_added', (snapshot) => {
-                const message = snapshot.val();
-                addMessageToPanel(message);
-                processFirebaseMessage(message);
-            });
-            
-            // Verificar conexión
-            const connectedRef = database.ref(".info/connected");
-            connectedRef.on("value", (snap) => {
-                if (snap.val() === true) {
-                    connectionStatus.textContent = "Conectado";
-                    connectionStatus.style.color = "#4caf50";
-                    statusIndicator.style.backgroundColor = "#4caf50";
-                    statusIndicator.style.boxShadow = "0 0 8px #4caf50";
+            messagesRef.on('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    updateConnectionStatus(true);
                     
-                    // Agregar mensaje de conexión exitosa
-                    addSystemMessage("Conexión Firebase establecida. Sistema operativo.");
+                    const messages = snapshot.val();
+                    const messagesArray = Object.values(messages).sort((a, b) => b.ts - a.ts);
+                    
+                    // Mostrar mensajes en el panel
+                    displayMessages(messagesArray.slice(0, 30));
+                    
+                    // Procesar el mensaje más reciente para la simulación
+                    if (messagesArray.length > 0) {
+                        const latestMessage = messagesArray[0];
+                        processMessageForSimulation(latestMessage);
+                        state.messageCount = messagesArray.length;
+                        document.getElementById('connectionText').textContent = `${state.messageCount} mensajes`;
+                    }
                 } else {
-                    connectionStatus.textContent = "Desconectado";
-                    connectionStatus.style.color = "#f44336";
-                    statusIndicator.style.backgroundColor = "#f44336";
-                    statusIndicator.style.boxShadow = "0 0 8px #f44336";
+                    displayMessage('No hay mensajes en la base de datos', 'system');
                 }
+            }, (error) => {
+                updateConnectionStatus(false);
+                console.error('Error al conectar con Firebase:', error);
+                displayMessage('Error de conexión con Firebase', 'emergency');
             });
-            
-            // Agregar mensaje inicial del sistema
-            addSystemMessage("=== INICIO SISTEMA ASCENSOR 3 PISOS - CONFIGURACION ESTRICTA ===");
-            setTimeout(() => {
-                addSystemMessage("=== AUTODIAGNÓSTICO OK ===");
-                elevatorStatus.textContent = "OPERATIVO";
-            }, 1500);
         }
         
-        // Agregar mensaje al panel
-        function addMessageToPanel(message) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message-item';
+        function updateConnectionStatus(connected) {
+            state.connected = connected;
+            const statusDot = document.getElementById('statusDot');
+            const connectionText = document.getElementById('connectionText');
             
-            // Determinar clase CSS según el tipo de mensaje
-            if (message.text.includes("EMERGENCIA") || message.text.includes("emergencia")) {
-                messageDiv.classList.add('message-emergency');
-            } else if (message.text.includes("SUBIR") || message.text.includes("BAJAR") || 
-                       message.text.includes("MOVIMIENTO") || message.text.includes("Destino")) {
-                messageDiv.classList.add('message-movement');
-            } else if (message.text.includes("PUERTAS") || message.text.includes("puertas") || 
-                       message.text.includes("APERTURA") || message.text.includes("CERRANDO")) {
-                messageDiv.classList.add('message-door');
+            if (connected) {
+                statusDot.classList.add('connected');
+                connectionText.textContent = 'Conectado';
+            } else {
+                statusDot.classList.remove('connected');
+                connectionText.textContent = 'Desconectado';
             }
+        }
+        
+        // ============================================
+        // FUNCIONES DE VISUALIZACIÓN DE MENSAJES
+        // ============================================
+        function displayMessages(messages) {
+            const container = document.getElementById('messagesContainer');
+            container.innerHTML = '';
             
-            const time = new Date(message.timestamp || Date.now()).toLocaleTimeString();
-            const date = new Date(message.timestamp || Date.now()).toLocaleDateString();
+            messages.forEach(msg => {
+                const messageElement = createMessageElement(msg);
+                container.appendChild(messageElement);
+            });
+        }
+        
+        function displayMessage(text, type = 'system') {
+            const container = document.getElementById('messagesContainer');
+            const simulatedMessage = {
+                mensaje: text,
+                ts: Date.now(),
+                piso: state.currentFloor,
+                tipo: type
+            };
             
-            messageDiv.innerHTML = `
-                <div class="message-time">${date} | ${time}</div>
-                <div class="message-content">${message.text}</div>
-            `;
-            
-            messagesContainer.prepend(messageDiv);
+            const messageElement = createMessageElement(simulatedMessage);
+            container.insertBefore(messageElement, container.firstChild);
             
             // Limitar a 50 mensajes
-            const allMessages = messagesContainer.querySelectorAll('.message-item');
-            if (allMessages.length > 50) {
-                messagesContainer.removeChild(allMessages[allMessages.length - 1]);
-            }
-            
-            // Auto-scroll al nuevo mensaje
-            messagesContainer.scrollTop = 0;
-        }
-        
-        // Agregar mensaje del sistema (sin Firebase)
-        function addSystemMessage(text) {
-            const message = {
-                text: text,
-                timestamp: Date.now()
-            };
-            addMessageToPanel(message);
-        }
-        
-        // Procesar mensaje de Firebase y sincronizar con el ascensor
-        function processFirebaseMessage(message) {
-            const text = message.text;
-            
-            // 1. MENSAJES DE MOVIMIENTO - SUBIR/BAJAR
-            if (text.includes("[ESTADO_MOVIMIENTO_SUBIENDO]") || text.includes("[ESTADO_MOVIMIENTO_BAJANDO]")) {
-                // Extraer el piso destino del mensaje
-                const floorMatch = text.match(/Destino P(\d)/);
-                if (floorMatch) {
-                    const destination = parseInt(floorMatch[1]);
-                    destinationFloor = destination;
-                    destinationDisplay.textContent = `PISO ${destination}`;
-                    
-                    // Determinar dirección
-                    movementDirection = text.includes("SUBIENDO") ? "up" : "down";
-                    
-                    // Cerrar puertas si están abiertas
-                    if (isDoorOpen) {
-                        closeDoors();
-                        setTimeout(() => {
-                            moveToFloor(destination);
-                        }, 2000);
-                    } else {
-                        moveToFloor(destination);
-                    }
-                    
-                    // Actualizar estado
-                    elevatorStatus.textContent = movementDirection === "up" ? "SUBIENDO" : "BAJANDO";
-                    addSystemMessage(`Ascensor ${movementDirection === "up" ? "subiendo" : "bajando"} hacia PISO ${destination}`);
-                }
-            }
-            
-            // 2. LLEGADA A PISO Y APERTURA DE PUERTAS
-            else if (text.includes("Llegado a Piso") && text.includes("Transicion a APERTURA_PUERTAS")) {
-                // Extraer el piso del mensaje
-                const floorMatch = text.match(/Piso (\d)/);
-                if (floorMatch) {
-                    const floor = parseInt(floorMatch[1]);
-                    
-                    // Detener movimiento y posicionar exactamente
-                    isMoving = false;
-                    currentFloor = floor;
-                    updateElevatorPosition();
-                    
-                    // Esperar 0.5 segundos y abrir puertas
-                    setTimeout(() => {
-                        openDoors();
-                        elevatorStatus.textContent = "ABRIENDO PUERTAS";
-                    }, 500);
-                    
-                    addSystemMessage(`Ascensor llegó al PISO ${floor}. Preparando apertura de puertas.`);
-                }
-            }
-            
-            // 3. SECUENCIA COMPLETA DE APERTURA
-            else if (text.includes("[ESTADO_APERTURA_PUERTAS]")) {
-                // Confirmar que estamos en estado de apertura
-                elevatorStatus.textContent = "ABRIENDO PUERTAS";
-                addSystemMessage("Proceso de apertura de puertas confirmado.");
-            }
-            
-            else if (text.includes("Apertura: Activando relé(s) de cerradura por 10000 ms")) {
-                addSystemMessage("Cerraduras desbloqueadas - Iniciando apertura.");
-            }
-            
-            else if (text.includes("Relés de cerradura DESACTIVADOS")) {
-                // Puertas completamente abiertas
-                isDoorOpen = true;
-                doorStatus.textContent = "ABIERTAS";
-                elevatorStatus.textContent = "PUERTAS ABIERTAS - ESPERANDO";
-                addSystemMessage("Puertas completamente abiertas. Iniciando temporizador de espera (10s).");
-                
-                // Iniciar temporizador para cerrar puertas automáticamente
-                clearTimeout(doorTimer);
-                doorTimer = setTimeout(() => {
-                    if (!isEmergencyMode) {
-                        closeDoors();
-                        addSystemMessage("Fin de ventana de puertas - Cerrando automáticamente.");
-                    }
-                }, 10000);
-            }
-            
-            // 4. EMERGENCIA
-            else if (text.includes("!!! ENTRANDO EN ESTADO_EMERGENCIA:")) {
-                activateEmergencyMode(text);
-            }
-            
-            else if (text.includes("[ESTADO_EMERGENCIA] Sistema detenido. Esperar reinicio físico.")) {
-                // Confirmar estado de emergencia
-                elevatorStatus.textContent = "EMERGENCIA - BLOQUEADO";
-                modeDisplay.textContent = "EMERGENCIA";
-                addSystemMessage("Sistema bloqueado en modo emergencia. Requiere reinicio físico.");
-            }
-            
-            // 5. LLAMADAS Y ÓRDENES
-            else if (text.includes("Llamada externa agregada en slot")) {
-                // Extraer el piso del mensaje
-                const floorMatch = text.match(/PX: P(\d)/) || text.match(/P(\d)/);
-                if (floorMatch) {
-                    const floor = parseInt(floorMatch[1]);
-                    externalCalls[floor] = true;
-                    updateFloorIndicator(floor, "external");
-                    addSystemMessage(`Llamada externa registrada para PISO ${floor}`);
-                    
-                    // Si el ascensor está en espera, moverse al piso llamado
-                    if (!isMoving && !isDoorOpen && !isEmergencyMode && destinationFloor === null) {
-                        destinationFloor = floor;
-                        moveToFloor(floor);
-                    }
-                }
-            }
-            
-            else if (text.includes("Orden INTERNA detectada en ESPERA:")) {
-                // Extraer el piso del mensaje
-                const floorMatch = text.match(/PX: P(\d)/) || text.match(/P(\d)/);
-                if (floorMatch) {
-                    const floor = parseInt(floorMatch[1]);
-                    internalOrders[floor] = true;
-                    updateFloorIndicator(floor, "internal");
-                    addSystemMessage(`Orden interna registrada para PISO ${floor}`);
-                    
-                    // Tiene prioridad absoluta
-                    if (!isEmergencyMode) {
-                        destinationFloor = floor;
-                        
-                        if (isDoorOpen) {
-                            closeDoors();
-                            setTimeout(() => {
-                                moveToFloor(floor);
-                            }, 2000);
-                        } else if (!isMoving) {
-                            moveToFloor(floor);
-                        } else {
-                            // Recalcular destino si ya se está moviendo
-                            addSystemMessage(`Recalculando destino. Nueva prioridad: PISO ${floor}`);
-                        }
-                    }
-                }
-            }
-            
-            // 6. INICIO Y REINICIO DEL SISTEMA
-            else if (text.includes("=== INICIO SISTEMA ASCENSOR 3 PISOS - CONFIGURACION ESTRICTA ===")) {
-                resetElevatorSystem();
-                addSystemMessage("Sistema de ascensor reiniciado a configuración inicial.");
-            }
-            
-            else if (text.includes("=== AUTODIAGNÓSTICO OK ===")) {
-                elevatorStatus.textContent = "OPERATIVO";
-                modeDisplay.textContent = "NORMAL";
-                addSystemMessage("Autodiagnóstico completado. Sistema listo para operar.");
-            }
-            
-            // Relé SUBIR/BAJAR = HIGH (activado)
-            else if (text.includes("Relé SUBIR = HIGH") || text.includes("Relé BAJAR = HIGH")) {
-                // Efecto visual para confirmar motor activado
-                elevatorCabin.classList.add(movementDirection === "up" ? "moving-up" : "moving-down");
-                addSystemMessage("Motor de movimiento activado.");
+            if (container.children.length > 50) {
+                container.removeChild(container.lastChild);
             }
         }
         
-        // Mover el ascensor a un piso específico
-        function moveToFloor(floor) {
-            if (isEmergencyMode || floor === currentFloor) return;
+        function createMessageElement(msg) {
+            const element = document.createElement('div');
+            element.className = 'message';
             
-            isMoving = true;
-            destinationFloor = floor;
-            destinationDisplay.textContent = `PISO ${floor}`;
+            // Determinar tipo de mensaje
+            const messageText = msg.mensaje || msg.message || '';
+            let messageType = 'system';
             
-            // Determinar dirección
-            movementDirection = floor > currentFloor ? "up" : "down";
-            elevatorStatus.textContent = movementDirection === "up" ? "SUBIENDO" : "BAJANDO";
+            if (messageText.includes('MOVIMIENTO') || messageText.includes('SUBIR') || 
+                messageText.includes('BAJAR') || messageText.includes('Destino')) {
+                messageType = 'movement';
+            } else if (messageText.includes('PUERTA') || messageText.includes('Apertura') || 
+                      messageText.includes('cerradura')) {
+                messageType = 'door';
+            } else if (messageText.includes('EMERGENCIA') || messageText.includes('!!!')) {
+                messageType = 'emergency';
+            } else if (messageText.includes('Llamada') || messageText.includes('INTERNA')) {
+                messageType = 'call';
+            }
             
-            // Actualizar display de la cabina
-            const displayText = movementDirection === "up" ? `SUBIENDO → P${floor}` : `BAJANDO → P${floor}`;
-            elevatorDisplay.innerHTML = `${displayText}`;
+            element.classList.add(`message-${messageType}`);
             
-            // Calcular distancia y tiempo de animación
-            const distance = Math.abs(floor - currentFloor);
-            const duration = distance * 2000; // 2 segundos por piso
+            // Formatear fecha y hora
+            const timestamp = new Date(msg.ts);
+            const timeString = timestamp.toLocaleTimeString('es-ES', { 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit' 
+            });
+            const dateString = timestamp.toLocaleDateString('es-ES');
             
-            // Actualizar posición visual
-            const newBottom = (floor - 1) * floorHeight;
-            elevatorCabin.style.transition = `bottom ${duration}ms ease-in-out`;
-            elevatorCabin.style.bottom = `${newBottom}px`;
+            element.innerHTML = `
+                <div class="message-header">
+                    <div class="message-time">
+                        <i class="far fa-clock"></i>
+                        ${timeString} - ${dateString}
+                    </div>
+                    <div class="message-type">${messageType.toUpperCase()}</div>
+                </div>
+                <div class="message-content">
+                    ${messageText}
+                </div>
+            `;
             
-            // Actualizar estado cuando termine el movimiento
-            setTimeout(() => {
-                isMoving = false;
-                currentFloor = floor;
-                currentFloorSpan.textContent = floor;
-                
-                // Actualizar display
-                elevatorDisplay.innerHTML = `PISO: <span id="current-floor">${floor}</span>`;
-                
-                // Llegada a piso
-                elevatorStatus.textContent = "LLEGADA A PISO";
-                addSystemMessage(`Llegado a Piso ${floor} (${movementDirection}). Transicion a APERTURA_PUERTAS`);
-                
-                // Limpiar efectos visuales de movimiento
-                elevatorCabin.classList.remove("moving-up", "moving-down");
-                
-                // Esperar y abrir puertas automáticamente
+            return element;
+        }
+        
+        // ============================================
+        // FUNCIONES DE SIMULACIÓN DEL ASCENSOR
+        // ============================================
+        function processMessageForSimulation(message) {
+            const msg = message.mensaje;
+            const floor = message.piso || state.currentFloor;
+            
+            // ACTUALIZAR ESTADO DEL SISTEMA
+            document.getElementById('currentState').textContent = getStateFromMessage(msg);
+            document.getElementById('cabinStatus').textContent = getCabinStatusFromMessage(msg);
+            
+            // PROCESAR SEGÚN TIPO DE MENSAJE
+            if (msg.includes('[ESTADO_MOVIMIENTO_SUBIENDO]')) {
+                const destino = extractFloorNumber(msg);
+                if (destino) {
+                    startMoving('up', destino);
+                }
+            }
+            else if (msg.includes('[ESTADO_MOVIMIENTO_BAJANDO]')) {
+                const destino = extractFloorNumber(msg);
+                if (destino) {
+                    startMoving('down', destino);
+                }
+            }
+            else if (msg.includes('Relé SUBIR = HIGH')) {
+                // Confirmación visual de motor subiendo
+                showMotorActive('up');
+            }
+            else if (msg.includes('Relé BAJAR = HIGH')) {
+                // Confirmación visual de motor bajando
+                showMotorActive('down');
+            }
+            else if (msg.includes('Llegado a Piso')) {
+                const pisoLlegada = extractFloorNumber(msg);
+                if (pisoLlegada) {
+                    arriveAtFloor(pisoLlegada);
+                    
+                    // Si indica transición a apertura, abrir puertas después de 0.5s
+                    if (msg.includes('APERTURA_PUERTAS')) {
+                        setTimeout(() => openDoors(), 500);
+                    }
+                }
+            }
+            else if (msg.includes('[ESTADO_APERTURA_PUERTAS]')) {
+                openDoors();
+            }
+            else if (msg.includes('Apertura: Activando relé(s)')) {
+                showDoorOpening();
+            }
+            else if (msg.includes('Relés de cerradura DESACTIVADOS')) {
+                doorsFullyOpened();
+                startDoorTimer(10000); // 10 segundos
+            }
+            else if (msg.includes('Puertas abiertas (esperando)')) {
+                // Mantener puertas abiertas
+                document.getElementById('doorsStatus').textContent = 'ABIERTAS';
+            }
+            else if (msg.includes('Fin de ventana de puertas')) {
+                closeDoors();
+            }
+            else if (msg.includes('!!! ENTRANDO EN ESTADO_EMERGENCIA')) {
+                activateEmergency();
+            }
+            else if (msg.includes('[ESTADO_EMERGENCIA]')) {
+                // Mantener estado de emergencia
+                document.getElementById('cabinStatus').textContent = 'EMERGENCIA';
+                document.getElementById('cabinStatus').style.color = '#e74c3c';
+            }
+            else if (msg.includes('Llamada externa agregada')) {
+                const pisoLlamada = extractFloorNumber(msg);
+                if (pisoLlamada) {
+                    showExternalCall(pisoLlamada);
+                }
+            }
+            else if (msg.includes('Orden INTERNA')) {
+                const pisoDestino = extractFloorNumber(msg);
+                if (pisoDestino) {
+                    showInternalCall(pisoDestino);
+                    // Si está detenido, cambiar destino inmediatamente
+                    if (!state.isMoving) {
+                        state.targetFloor = pisoDestino;
+                        document.getElementById('targetFloor').textContent = `P${pisoDestino}`;
+                    }
+                }
+            }
+            else if (msg.includes('Cola extern:')) {
+                updateCallQueue(msg);
+            }
+            else if (msg.includes('Motor PARADO')) {
+                // Solo detener si no es después de una llegada
+                if (!msg.includes('Llegado')) {
+                    stopMovement();
+                }
+            }
+            else if (msg.includes('=== INICIO SISTEMA')) {
+                resetSimulation();
+            }
+            else if (msg.includes('=== AUTODIAGNÓSTICO OK ===')) {
+                document.getElementById('cabinStatus').textContent = 'SISTEMA LISTO';
+                document.getElementById('cabinStatus').style.color = '#2ecc71';
+            }
+        }
+        
+        // ============================================
+        // FUNCIONES DE ANIMACIÓN DEL ASCENSOR
+        // ============================================
+        function startMoving(direction, targetFloor) {
+            if (state.emergency) return;
+            
+            // Cerrar puertas si estaban abiertas
+            if (state.doorsOpen) {
+                closeDoors();
                 setTimeout(() => {
-                    if (!isEmergencyMode) {
-                        openDoors();
-                        elevatorStatus.textContent = "ABRIENDO PUERTAS";
-                        
-                        // Limpiar llamadas/órdenes para este piso
-                        if (externalCalls[floor]) {
-                            externalCalls[floor] = false;
-                            updateFloorIndicator(floor, "clear");
-                        }
-                        if (internalOrders[floor]) {
-                            internalOrders[floor] = false;
-                            updateFloorIndicator(floor, "clear");
-                        }
-                    }
-                }, 500);
-                
-                destinationFloor = null;
-                destinationDisplay.textContent = "--";
-                
-            }, duration);
+                    actuallyStartMoving(direction, targetFloor);
+                }, 2000); // Esperar a que se cierren las puertas
+            } else {
+                actuallyStartMoving(direction, targetFloor);
+            }
         }
         
-        // Actualizar posición visual del ascensor
-        function updateElevatorPosition() {
-            const bottom = (currentFloor - 1) * floorHeight;
-            elevatorCabin.style.bottom = `${bottom}px`;
-            currentFloorSpan.textContent = currentFloor;
+        function actuallyStartMoving(direction, targetFloor) {
+            state.isMoving = true;
+            state.direction = direction;
+            state.targetFloor = targetFloor;
+            
+            // Actualizar UI
+            document.getElementById('targetFloor').textContent = `P${targetFloor}`;
+            document.getElementById('currentState').textContent = direction === 'up' ? 'SUBIENDO' : 'BAJANDO';
+            document.getElementById('cabinStatus').textContent = direction === 'up' ? `SUBIENDO → P${targetFloor}` : `BAJANDO → P${targetFloor}`;
+            document.getElementById('cabinStatus').style.color = '#3498db';
+            
+            // Animar movimiento
+            const cabin = document.getElementById('elevatorCabin');
+            const building = document.getElementById('building');
+            const buildingHeight = building.clientHeight;
+            
+            // Calcular posición bottom (piso 1: 20px, piso 2: 253px, piso 3: 486px)
+            const floorPositions = {1: 20, 2: 253, 3: 486};
+            const targetPosition = floorPositions[targetFloor];
+            
+            // Duración del movimiento: 2 segundos por piso de diferencia
+            const floorDifference = Math.abs(targetFloor - state.currentFloor);
+            const duration = 2 * floorDifference * 1000; // en milisegundos
+            
+            cabin.style.transition = `bottom ${duration}ms cubic-bezier(0.34, 1.56, 0.64, 1)`;
+            cabin.style.bottom = `${targetPosition}px`;
+            
+            // Actualizar piso actual durante el movimiento
+            state.currentFloor = targetFloor;
+            document.getElementById('cabinFloor').textContent = targetFloor;
+            
+            // Limpiar temporizador anterior
+            if (state.movementTimer) clearTimeout(state.movementTimer);
+            
+            // Simular llegada (en realidad se manejará con mensaje de llegada)
+            // state.movementTimer = setTimeout(() => {
+            //     arriveAtFloor(targetFloor);
+            // }, duration);
         }
         
-        // Abrir puertas
+        function showMotorActive(direction) {
+            const cabin = document.getElementById('elevatorCabin');
+            cabin.style.animation = 'none';
+            void cabin.offsetWidth; // Trigger reflow
+            cabin.style.animation = 'vibration 0.1s 3';
+            
+            // Agregar clase CSS temporal para efecto visual
+            document.styleSheets[0].insertRule(`
+                @keyframes vibration {
+                    0% { transform: translateX(0); }
+                    25% { transform: translateX(-2px); }
+                    50% { transform: translateX(2px); }
+                    75% { transform: translateX(-2px); }
+                    100% { transform: translateX(0); }
+                }
+            `, 0);
+        }
+        
+        function arriveAtFloor(floor) {
+            state.isMoving = false;
+            state.direction = null;
+            
+            // Posicionar cabina exactamente en el piso
+            const cabin = document.getElementById('elevatorCabin');
+            const floorPositions = {1: 20, 2: 253, 3: 486};
+            cabin.style.transition = 'bottom 0.3s ease';
+            cabin.style.bottom = `${floorPositions[floor]}px`;
+            
+            // Actualizar UI
+            document.getElementById('cabinFloor').textContent = floor;
+            document.getElementById('cabinStatus').textContent = 'LLEGADO';
+            document.getElementById('cabinStatus').style.color = '#2ecc71';
+            document.getElementById('currentState').textContent = 'LLEGADO';
+            
+            state.currentFloor = floor;
+        }
+        
         function openDoors() {
-            if (isEmergencyMode) return;
+            if (state.emergency) return;
             
-            doorLeft.style.transform = "translateX(-95%)";
-            doorRight.style.transform = "translateX(95%)";
-            isDoorOpen = true;
-            doorStatus.textContent = "ABIERTAS";
+            const doors = document.querySelectorAll('.door');
+            doors.forEach(door => {
+                door.parentElement.classList.add('door-open');
+            });
             
-            // Si hay un temporizador de cierre automático, limpiarlo
-            clearTimeout(doorTimer);
+            state.doorsOpen = true;
+            document.getElementById('doorsStatus').textContent = 'ABRIÉNDOSE';
+            document.getElementById('cabinStatus').textContent = 'ABRIENDO PUERTAS';
+            document.getElementById('cabinStatus').style.color = '#f39c12';
             
-            addSystemMessage("[ESTADO_APERTURA_PUERTAS] Puertas abriéndose");
-            
-            // Después de 3 segundos, confirmar apertura completa
+            // Después de 3 segundos, puertas completamente abiertas
             setTimeout(() => {
-                if (isDoorOpen && !isEmergencyMode) {
-                    addSystemMessage("Relés de cerradura DESACTIVADOS - Puertas completamente abiertas");
-                    addSystemMessage("Puertas abiertas (esperando) por 10000 ms");
-                    
-                    // Iniciar temporizador de cierre automático (10 segundos)
-                    doorTimer = setTimeout(() => {
-                        if (!isEmergencyMode) {
-                            closeDoors();
-                            addSystemMessage("Fin de ventana de puertas - Cerrando automáticamente.");
-                        }
-                    }, 10000);
+                if (state.doorsOpen && !state.emergency) {
+                    document.getElementById('doorsStatus').textContent = 'ABIERTAS';
+                    document.getElementById('cabinStatus').textContent = 'PUERTAS ABIERTAS';
                 }
             }, 3000);
         }
         
-        // Cerrar puertas
-        function closeDoors() {
-            if (isEmergencyMode) return;
-            
-            doorLeft.style.transform = "translateX(0)";
-            doorRight.style.transform = "translateX(0)";
-            isDoorOpen = false;
-            doorStatus.textContent = "CERRADAS";
-            elevatorStatus.textContent = "ESPERANDO";
-            
-            // Limpiar temporizador de cierre automático
-            clearTimeout(doorTimer);
-            
-            addSystemMessage("Puertas cerradas - Sistema listo para movimiento.");
+        function showDoorOpening() {
+            document.getElementById('cabinStatus').textContent = 'DESBLOQUEANDO CERRADURAS';
+            document.getElementById('cabinStatus').style.color = '#f39c12';
         }
         
-        // Activar modo emergencia
-        function activateEmergencyMode(reason) {
-            isEmergencyMode = true;
-            isMoving = false;
-            
-            // Aplicar estilos de emergencia
-            elevatorContainer.classList.add("emergency-active");
-            
-            // Detener cualquier movimiento
-            elevatorCabin.style.transition = "none";
-            
-            // Mostrar mensaje de emergencia
-            const reasonText = reason.split(":")[1] || "Razón no especificada";
-            emergencyMessage.innerHTML = `<i class="fas fa-exclamation-triangle"></i> 
-                EMERGENCIA ACTIVADA - ${reasonText.toUpperCase()} 
-                <i class="fas fa-exclamation-triangle"></i>`;
-            
-            // Actualizar estado
-            elevatorStatus.textContent = "EMERGENCIA";
-            modeDisplay.textContent = "EMERGENCIA";
-            destinationDisplay.textContent = "--";
-            
-            // Desactivar todos los controles
-            document.querySelectorAll('button').forEach(btn => {
-                btn.disabled = true;
-            });
-            
-            addSystemMessage(`!!! ENTRANDO EN ESTADO_EMERGENCIA: ${reasonText}`);
-            addSystemMessage("[ESTADO_EMERGENCIA] Sistema detenido. Esperar reinicio físico.");
+        function doorsFullyOpened() {
+            document.getElementById('cabinStatus').textContent = 'PUERTAS ABIERTAS - ESPERANDO';
+            document.getElementById('cabinStatus').style.color = '#2ecc71';
         }
         
-        // Desactivar modo emergencia
-        function deactivateEmergencyMode() {
-            isEmergencyMode = false;
+        function startDoorTimer(duration) {
+            // Mostrar temporizador visual
+            const cabinStatus = document.getElementById('cabinStatus');
+            let seconds = duration / 1000;
             
-            // Quitar estilos de emergencia
-            elevatorContainer.classList.remove("emergency-active");
+            if (state.doorTimer) clearInterval(state.doorTimer);
             
-            // Reactivar controles
-            document.querySelectorAll('button').forEach(btn => {
-                btn.disabled = false;
-            });
-            
-            // Actualizar estado
-            elevatorStatus.textContent = "OPERATIVO";
-            modeDisplay.textContent = "NORMAL";
-            
-            addSystemMessage("Modo emergencia desactivado. Sistema reiniciado.");
-        }
-        
-        // Actualizar indicadores de piso
-        function updateFloorIndicator(floor, type) {
-            const indicator = document.getElementById(`indicator-${floor}`);
-            
-            if (type === "external") {
-                indicator.textContent = "LLAMADA EXTERNA";
-                indicator.style.color = "#3498db";
-                indicator.parentElement.classList.add("active-call");
-            } else if (type === "internal") {
-                indicator.textContent = "ORDEN INTERNA";
-                indicator.style.color = "#2ecc71";
-                indicator.parentElement.classList.add("active-call");
-            } else {
-                indicator.textContent = "Disponible";
-                indicator.style.color = "#3498db";
-                indicator.parentElement.classList.remove("active-call");
-            }
-        }
-        
-        // Reiniciar sistema del ascensor
-        function resetElevatorSystem() {
-            // Detener todo
-            isMoving = false;
-            isEmergencyMode = false;
-            destinationFloor = null;
-            
-            // Cerrar puertas
-            closeDoors();
-            
-            // Posicionar en piso 1
-            currentFloor = 1;
-            updateElevatorPosition();
-            
-            // Limpiar indicadores
-            for (let i = 1; i <= 3; i++) {
-                externalCalls[i] = false;
-                internalOrders[i] = false;
-                updateFloorIndicator(i, "clear");
-            }
-            
-            // Restablecer controles
-            document.querySelectorAll('button').forEach(btn => {
-                btn.disabled = false;
-            });
-            
-            // Quitar modo emergencia
-            elevatorContainer.classList.remove("emergency-active");
-            
-            // Actualizar displays
-            elevatorStatus.textContent = "OPERATIVO";
-            modeDisplay.textContent = "NORMAL";
-            destinationDisplay.textContent = "--";
-            currentFloorSpan.textContent = "1";
-            elevatorDisplay.innerHTML = `PISO: <span id="current-floor">1</span>`;
-        }
-        
-        // Event listeners para controles manuales
-        document.querySelectorAll('.floor-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                if (isEmergencyMode) return;
+            state.doorTimer = setInterval(() => {
+                seconds--;
+                cabinStatus.textContent = `PUERTAS ABIERTAS (${seconds}s)`;
                 
-                const floor = parseInt(this.getAttribute('data-floor'));
-                
-                // Si el ascensor está en movimiento o las puertas están abiertas, registrar como orden interna
-                if (isMoving || isDoorOpen) {
-                    internalOrders[floor] = true;
-                    updateFloorIndicator(floor, "internal");
-                    addSystemMessage(`Orden INTERNA detectada en ESPERA: P${floor}`);
-                    
-                    // Si las puertas están abiertas, cerrarlas primero
-                    if (isDoorOpen) {
+                if (seconds <= 0) {
+                    clearInterval(state.doorTimer);
+                    if (!state.emergency) {
                         closeDoors();
-                        setTimeout(() => {
-                            destinationFloor = floor;
-                            moveToFloor(floor);
-                        }, 2000);
                     }
-                } else {
-                    // Si está esperando, mover directamente
-                    destinationFloor = floor;
-                    moveToFloor(floor);
                 }
+            }, 1000);
+        }
+        
+        function closeDoors() {
+            const doors = document.querySelectorAll('.door');
+            doors.forEach(door => {
+                door.parentElement.classList.remove('door-open');
             });
-        });
+            
+            state.doorsOpen = false;
+            document.getElementById('doorsStatus').textContent = 'CERRÁNDOSE';
+            document.getElementById('cabinStatus').textContent = 'CERRANDO PUERTAS';
+            document.getElementById('cabinStatus').style.color = '#f39c12';
+            
+            // Después de 2 segundos, puertas cerradas
+            setTimeout(() => {
+                if (!state.doorsOpen && !state.emergency) {
+                    document.getElementById('doorsStatus').textContent = 'CERRADAS';
+                    document.getElementById('cabinStatus').textContent = 'ESPERANDO';
+                    document.getElementById('cabinStatus').style.color = '#3498db';
+                    document.getElementById('currentState').textContent = 'ESPERANDO';
+                }
+            }, 2000);
+        }
         
-        document.getElementById('open-door-btn').addEventListener('click', function() {
-            if (!isEmergencyMode && !isMoving) {
-                openDoors();
-            }
-        });
+        function stopMovement() {
+            state.isMoving = false;
+            state.direction = null;
+            
+            const cabin = document.getElementById('elevatorCabin');
+            cabin.style.transition = 'bottom 0.5s ease';
+            
+            document.getElementById('cabinStatus').textContent = 'DETENIDO';
+            document.getElementById('cabinStatus').style.color = '#95a5a6';
+            document.getElementById('currentState').textContent = 'DETENIDO';
+        }
         
-        document.getElementById('close-door-btn').addEventListener('click', function() {
-            if (!isEmergencyMode && !isMoving) {
-                closeDoors();
-            }
-        });
+        function activateEmergency() {
+            state.emergency = true;
+            state.isMoving = false;
+            
+            // Detener todos los temporizadores
+            if (state.doorTimer) clearInterval(state.doorTimer);
+            if (state.movementTimer) clearTimeout(state.movementTimer);
+            
+            // Aplicar estilo de emergencia
+            const building = document.getElementById('building');
+            building.classList.add('emergency-active');
+            
+            // Actualizar UI
+            document.getElementById('cabinStatus').textContent = '🚨 EMERGENCIA 🚨';
+            document.getElementById('cabinStatus').style.color = '#e74c3c';
+            document.getElementById('currentState').textContent = 'EMERGENCIA';
+            document.getElementById('currentState').style.color = '#e74c3c';
+            document.getElementById('doorsStatus').textContent = 'BLOQUEADAS';
+            
+            // Mostrar mensaje en panel
+            displayMessage('SISTEMA EN EMERGENCIA - REQUIERE REINICIO FÍSICO', 'emergency');
+        }
         
-        document.getElementById('emergency-btn').addEventListener('click', function() {
-            if (isEmergencyMode) {
-                deactivateEmergencyMode();
-                this.innerHTML = '<i class="fas fa-exclamation-triangle"></i> MODO EMERGENCIA';
-            } else {
-                activateEmergencyMode("Activado manualmente desde panel de control");
-                this.innerHTML = '<i class="fas fa-undo"></i> REINICIAR SISTEMA';
-            }
-        });
-        
-        // Inicializar Firebase cuando se cargue la página
-        window.addEventListener('DOMContentLoaded', initializeFirebase);
-        
-        // Agregar algunos mensajes de ejemplo para demostración
-        setTimeout(() => {
-            if (messagesContainer.querySelectorAll('.message-item').length <= 2) {
-                addSystemMessage("Sistema listo para recibir comandos de Firebase.");
-                addSystemMessage("Simulación de llamada externa: PISO 3");
-                addSystemMessage("Llamada externa agregada en slot1: P3");
+        function showExternalCall(floor) {
+            // Destellar el piso correspondiente
+            const floorLabels = document.querySelectorAll('.floor-label');
+            const targetLabel = Array.from(floorLabels).find(label => label.textContent === floor.toString());
+            
+            if (targetLabel) {
+                targetLabel.style.animation = 'glow 1s 3';
+                targetLabel.style.color = '#3498db';
                 
-                // Simular una llamada externa al piso 3 después de 3 segundos
                 setTimeout(() => {
-                    if (!isEmergencyMode) {
-                        externalCalls[3] = true;
-                        updateFloorIndicator(3, "external");
-                        
-                        // Si el ascensor está en espera, moverse al piso 3
-                        if (!isMoving && !isDoorOpen && destinationFloor === null) {
-                            setTimeout(() => {
-                                destinationFloor = 3;
-                                moveToFloor(3);
-                            }, 1000);
-                        }
-                    }
+                    targetLabel.style.animation = '';
+                    targetLabel.style.color = '';
                 }, 3000);
             }
-        }, 2000);
+            
+            displayMessage(`Llamada externa recibida en Piso ${floor}`, 'call');
+        }
+        
+        function showInternalCall(floor) {
+            // Destellar el número de piso en la cabina
+            const cabinFloor = document.getElementById('cabinFloor');
+            cabinFloor.style.animation = 'glow 1s 3';
+            cabinFloor.style.color = '#2ecc71';
+            
+            setTimeout(() => {
+                cabinFloor.style.animation = '';
+                cabinFloor.style.color = '';
+            }, 3000);
+            
+            displayMessage(`Orden interna: Piso ${floor} seleccionado`, 'call');
+        }
+        
+        function updateCallQueue(msg) {
+            // Extraer valores de la cola [X, Y]
+            const match = msg.match(/\[(\d+),\s*(\d+)\]/);
+            if (match) {
+                state.externalCalls = [parseInt(match[1]), parseInt(match[2])];
+                document.getElementById('callQueue').textContent = `[${match[1]}, ${match[2]}]`;
+            }
+        }
+        
+        function resetSimulation() {
+            // Resetear estado
+            state.currentFloor = 1;
+            state.targetFloor = null;
+            state.isMoving = false;
+            state.direction = null;
+            state.doorsOpen = false;
+            state.emergency = false;
+            state.externalCalls = [0, 0];
+            state.internalCall = 0;
+            
+            // Resetear UI
+            const cabin = document.getElementById('elevatorCabin');
+            cabin.style.bottom = '20px';
+            cabin.style.transition = 'none';
+            
+            const building = document.getElementById('building');
+            building.classList.remove('emergency-active');
+            
+            // Cerrar puertas
+            const doors = document.querySelectorAll('.door');
+            doors.forEach(door => {
+                door.parentElement.classList.remove('door-open');
+            });
+            
+            // Actualizar displays
+            document.getElementById('cabinFloor').textContent = '1';
+            document.getElementById('cabinStatus').textContent = 'INICIANDO SISTEMA';
+            document.getElementById('cabinStatus').style.color = '#f39c12';
+            document.getElementById('currentState').textContent = 'INICIANDO';
+            document.getElementById('targetFloor').textContent = '--';
+            document.getElementById('doorsStatus').textContent = 'CERRADAS';
+            document.getElementById('callQueue').textContent = '[0, 0]';
+            
+            displayMessage('Sistema reiniciado - Simulación lista', 'system');
+        }
+        
+        // ============================================
+        // FUNCIONES UTILITARIAS
+        // ============================================
+        function extractFloorNumber(text) {
+            const match = text.match(/P(\d+)/);
+            return match ? parseInt(match[1]) : null;
+        }
+        
+        function getStateFromMessage(msg) {
+            if (msg.includes('MOVIMIENTO_SUBIENDO')) return 'SUBIENDO';
+            if (msg.includes('MOVIMIENTO_BAJANDO')) return 'BAJANDO';
+            if (msg.includes('APERTURA_PUERTAS')) return 'ABRIENDO PUERTAS';
+            if (msg.includes('EMERGENCIA')) return 'EMERGENCIA';
+            if (msg.includes('ESPERA')) return 'ESPERANDO';
+            return 'OPERANDO';
+        }
+        
+        function getCabinStatusFromMessage(msg) {
+            if (msg.includes('SUBIENDO')) return 'SUBIENDO';
+            if (msg.includes('BAJANDO')) return 'BAJANDO';
+            if (msg.includes('Llegado')) return 'LLEGADO';
+            if (msg.includes('Apertura')) return 'ABRIENDO PUERTAS';
+            if (msg.includes('EMERGENCIA')) return 'EMERGENCIA';
+            return 'ESPERANDO';
+        }
+        
+        // ============================================
+        // INICIALIZACIÓN Y CONTROLES
+        // ============================================
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inicializar Firebase
+            initializeFirebase();
+            
+            // Configurar controles de simulación
+            document.getElementById('btnCall1').addEventListener('click', () => {
+                showExternalCall(1);
+                displayMessage('Llamada externa agregada en slot1: P1', 'call');
+            });
+            
+            document.getElementById('btnCall2').addEventListener('click', () => {
+                showExternalCall(2);
+                displayMessage('Llamada externa agregada en slot1: P2', 'call');
+            });
+            
+            document.getElementById('btnCall3').addEventListener('click', () => {
+                showExternalCall(3);
+                displayMessage('Llamada externa agregada en slot1: P3', 'call');
+            });
+            
+            document.getElementById('btnInternal1').addEventListener('click', () => {
+                showInternalCall(1);
+                if (!state.isMoving) {
+                    startMoving(state.currentFloor < 1 ? 'down' : 'up', 1);
+                }
+                displayMessage('Orden INTERNA detectada en ESPERA: P1', 'call');
+            });
+            
+            document.getElementById('btnInternal2').addEventListener('click', () => {
+                showInternalCall(2);
+                if (!state.isMoving) {
+                    startMoving(state.currentFloor < 2 ? 'down' : 'up', 2);
+                }
+                displayMessage('Orden INTERNA detectada en ESPERA: P2', 'call');
+            });
+            
+            document.getElementById('btnInternal3').addEventListener('click', () => {
+                showInternalCall(3);
+                if (!state.isMoving) {
+                    startMoving(state.currentFloor < 3 ? 'down' : 'up', 3);
+                }
+                displayMessage('Orden INTERNA detectada en ESPERA: P3', 'call');
+            });
+            
+            document.getElementById('btnOpenDoor').addEventListener('click', () => {
+                if (!state.isMoving && !state.emergency) {
+                    openDoors();
+                    displayMessage('Botón interno abrir puerta PRESIONADO', 'door');
+                }
+            });
+            
+            document.getElementById('btnEmergency').addEventListener('click', () => {
+                activateEmergency();
+                displayMessage('!!! ENTRANDO EN ESTADO_EMERGENCIA: Botón de emergencia activado manualmente', 'emergency');
+            });
+            
+            // Mensaje inicial
+            setTimeout(() => {
+                displayMessage('Conectando al sistema de monitoreo del ascensor...', 'system');
+                displayMessage('Esperando mensajes de Firebase...', 'system');
+            }, 1000);
+        });
     </script>
 </body>
 </html>
