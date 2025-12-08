@@ -18,9 +18,24 @@
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
         }
 
+        :root {
+            --color-primary: #3b82f6;
+            --color-secondary: #1e293b;
+            --color-success: #10b981;
+            --color-danger: #ef4444;
+            --color-warning: #f59e0b;
+            --color-light: #f8fafc;
+            --color-dark: #0f172a;
+            --color-gray: #64748b;
+            --floor-height: 180px;
+            --cabin-width: 280px;
+            --cabin-height: 150px;
+            --door-animation-time: 0.8s;
+        }
+
         body {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            color: #e2e8f0;
+            background: linear-gradient(135deg, var(--color-dark) 0%, var(--color-secondary) 100%);
+            color: var(--color-light);
             min-height: 100vh;
             display: flex;
             overflow-x: hidden;
@@ -32,7 +47,7 @@
             min-width: 400px;
             height: 100vh;
             background: rgba(15, 23, 42, 0.95);
-            border-right: 2px solid #334155;
+            border-right: 2px solid var(--color-gray);
             padding: 25px;
             overflow-y: auto;
             box-shadow: 5px 0 25px rgba(0, 0, 0, 0.4);
@@ -41,7 +56,7 @@
         }
 
         .panel-firebase::-webkit-scrollbar {
-            width: 10px;
+            width: 8px;
         }
 
         .panel-firebase::-webkit-scrollbar-track {
@@ -50,7 +65,7 @@
         }
 
         .panel-firebase::-webkit-scrollbar-thumb {
-            background: #3b82f6;
+            background: var(--color-primary);
             border-radius: 5px;
         }
 
@@ -60,7 +75,7 @@
             justify-content: space-between;
             margin-bottom: 25px;
             padding-bottom: 15px;
-            border-bottom: 2px solid #3b82f6;
+            border-bottom: 2px solid var(--color-primary);
         }
 
         .firebase-title {
@@ -72,7 +87,7 @@
         }
 
         .firebase-title i {
-            color: #3b82f6;
+            color: var(--color-primary);
         }
 
         .connection-status {
@@ -89,12 +104,12 @@
             width: 10px;
             height: 10px;
             border-radius: 50%;
-            background: #ef4444;
+            background: var(--color-danger);
             animation: pulse 2s infinite;
         }
 
         .status-dot.connected {
-            background: #10b981;
+            background: var(--color-success);
             animation: none;
         }
 
@@ -119,7 +134,7 @@
         }
 
         #tablaEventos th {
-            background: #1e293b;
+            background: var(--color-secondary);
             color: #cbd5e1;
             padding: 15px 12px;
             text-align: left;
@@ -127,7 +142,7 @@
             font-size: 0.9rem;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            border-bottom: 2px solid #3b82f6;
+            border-bottom: 2px solid var(--color-primary);
         }
 
         #tablaEventos td {
@@ -165,7 +180,7 @@
 
         .sim-title h1 {
             font-size: 2.2rem;
-            background: linear-gradient(90deg, #60a5fa, #3b82f6);
+            background: linear-gradient(90deg, #60a5fa, var(--color-primary));
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
@@ -174,7 +189,7 @@
 
         .sim-title i {
             font-size: 2rem;
-            color: #3b82f6;
+            color: var(--color-primary);
         }
 
         /* Indicadores de estado */
@@ -187,7 +202,7 @@
             background: rgba(30, 41, 59, 0.7);
             padding: 12px 20px;
             border-radius: 12px;
-            border-left: 4px solid #3b82f6;
+            border-left: 4px solid var(--color-primary);
             min-width: 150px;
             text-align: center;
         }
@@ -211,33 +226,39 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin-top: 20px;
+            justify-content: center;
+            flex-grow: 1;
+            position: relative;
+            width: 100%;
         }
 
         /* Estructura metálica (tubo cuadrado) */
         .metal-frame {
             width: 450px;
-            height: 550px;
+            height: calc(var(--floor-height) * 3 + 40px); /* 3 pisos + margen */
             background: linear-gradient(135deg, #475569 0%, #334155 100%);
             border-radius: 15px;
             position: relative;
             box-shadow: 
                 inset 0 0 30px rgba(0, 0, 0, 0.5),
                 0 15px 35px rgba(0, 0, 0, 0.4);
-            border: 12px solid #1e293b;
+            border: 12px solid var(--color-secondary);
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            margin: 0 auto;
         }
 
-        /* Pisos */
+        /* Pisos - DEFINICIÓN PRECISA */
         .floor {
-            flex: 1;
+            height: var(--floor-height);
+            width: 100%;
             position: relative;
-            border-bottom: 3px solid #1e293b;
             display: flex;
             align-items: center;
             justify-content: center;
+            border-bottom: 3px solid var(--color-secondary);
+            box-sizing: border-box;
         }
 
         .floor:last-child {
@@ -254,37 +275,49 @@
             padding: 10px 20px;
             border-radius: 8px;
             border: 2px solid #475569;
+            z-index: 5;
         }
 
-        /* Cabina del ascensor */
+        /* Cabina del ascensor - POSICIONAMIENTO FIJO */
         .elevator-cabin {
-            width: 300px;
-            height: 160px;
-            background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+            width: var(--cabin-width);
+            height: var(--cabin-height);
+            background: linear-gradient(135deg, #4f46e5 0%, var(--color-primary) 100%);
             border-radius: 12px;
             position: absolute;
-            left: 75px;
-            bottom: 20px;
-            transition: bottom 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            left: calc((450px - var(--cabin-width)) / 2); /* Centrado horizontal */
+            bottom: 20px; /* Posición inicial - PISO 1 */
+            transition: bottom 2s cubic-bezier(0.4, 0, 0.2, 1);
             box-shadow: 
                 0 5px 20px rgba(0, 0, 0, 0.3),
                 inset 0 0 20px rgba(255, 255, 255, 0.1);
-            border: 3px solid #1e293b;
+            border: 3px solid var(--color-secondary);
             z-index: 20;
             display: flex;
             flex-direction: column;
             overflow: hidden;
         }
 
+        /* Posiciones específicas para cada piso */
+        .elevator-cabin.floor-1 { bottom: 20px; } /* Piso 1 */
+        .elevator-cabin.floor-2 { bottom: calc(var(--floor-height) + 20px); } /* Piso 2 */
+        .elevator-cabin.floor-3 { bottom: calc(var(--floor-height) * 2 + 20px); } /* Piso 3 */
+
         /* Cabina en emergencia */
         .elevator-cabin.emergency {
-            background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+            background: linear-gradient(135deg, #dc2626 0%, var(--color-danger) 100%);
             animation: emergencyPulse 1s infinite;
         }
 
         @keyframes emergencyPulse {
-            0%, 100% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.5); }
-            50% { box-shadow: 0 0 40px rgba(239, 68, 68, 0.8); }
+            0%, 100% { 
+                box-shadow: 0 0 20px rgba(239, 68, 68, 0.5),
+                            inset 0 0 20px rgba(255, 255, 255, 0.1); 
+            }
+            50% { 
+                box-shadow: 0 0 40px rgba(239, 68, 68, 0.8),
+                            inset 0 0 20px rgba(255, 255, 255, 0.1); 
+            }
         }
 
         /* Indicadores de la cabina */
@@ -302,6 +335,8 @@
             font-weight: 700;
             color: white;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            min-width: 60px;
+            text-align: center;
         }
 
         .cabin-status {
@@ -311,6 +346,11 @@
             background: rgba(0, 0, 0, 0.4);
             border-radius: 20px;
             border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         /* Controles internos de la cabina */
@@ -327,7 +367,7 @@
             height: 50px;
             border-radius: 50%;
             border: none;
-            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            background: linear-gradient(135deg, var(--color-secondary) 0%, #334155 100%);
             color: #e2e8f0;
             font-size: 1.3rem;
             font-weight: 600;
@@ -346,12 +386,12 @@
         }
 
         .internal-btn.active {
-            background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+            background: linear-gradient(135deg, var(--color-success) 0%, #34d399 100%);
             color: white;
             box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
         }
 
-        /* Puertas de la cabina */
+        /* ===== PUERTAS - ANIMACIÓN MEJORADA ===== */
         .cabin-doors {
             position: absolute;
             top: 0;
@@ -361,6 +401,7 @@
             pointer-events: none;
             overflow: hidden;
             border-radius: 10px;
+            display: flex;
         }
 
         .door {
@@ -369,33 +410,47 @@
             bottom: 0;
             width: 50%;
             background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
-            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: transform var(--door-animation-time) cubic-bezier(0.68, -0.55, 0.27, 1.55);
             border: 2px solid #1f2937;
-            box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5);
+            box-shadow: 
+                inset 0 0 15px rgba(0, 0, 0, 0.5),
+                0 0 10px rgba(0, 0, 0, 0.3);
         }
 
         .door-left {
             left: 0;
             border-right: 1px solid #1f2937;
+            transform-origin: left center;
         }
 
         .door-right {
             right: 0;
             border-left: 1px solid #1f2937;
+            transform-origin: right center;
         }
 
         .doors-open .door-left {
-            transform: translateX(-100%);
+            transform: perspective(500px) translateX(-100%) rotateY(-10deg);
         }
 
         .doors-open .door-right {
-            transform: translateX(100%);
+            transform: perspective(500px) translateX(100%) rotateY(10deg);
+        }
+
+        .doors-closing .door-left {
+            transform: perspective(500px) translateX(0%) rotateY(0deg);
+            transition-timing-function: cubic-bezier(0.18, 0.89, 0.32, 1.28);
+        }
+
+        .doors-closing .door-right {
+            transform: perspective(500px) translateX(0%) rotateY(0deg);
+            transition-timing-function: cubic-bezier(0.18, 0.89, 0.32, 1.28);
         }
 
         /* Botones de llamada externa */
         .external-calls {
             position: absolute;
-            right: 30px;
+            right: -80px;
             top: 50%;
             transform: translateY(-50%);
             display: flex;
@@ -409,7 +464,7 @@
             height: 60px;
             border-radius: 50%;
             border: none;
-            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            background: linear-gradient(135deg, var(--color-secondary) 0%, #334155 100%);
             color: #94a3b8;
             font-size: 1.5rem;
             font-weight: 600;
@@ -428,7 +483,7 @@
         }
 
         .call-btn.active {
-            background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+            background: linear-gradient(135deg, var(--color-primary) 0%, #60a5fa 100%);
             color: white;
             box-shadow: 0 0 25px rgba(59, 130, 246, 0.6);
             animation: callPulse 1.5s infinite;
@@ -504,7 +559,7 @@
             background: rgba(30, 41, 59, 0.9);
             padding: 15px 25px;
             border-radius: 12px;
-            border: 2px solid #3b82f6;
+            border: 2px solid var(--color-primary);
             display: none;
             align-items: center;
             gap: 15px;
@@ -512,6 +567,12 @@
 
         .door-timer.show {
             display: flex;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .timer-label {
@@ -524,6 +585,8 @@
             font-weight: 700;
             color: #60a5fa;
             font-variant-numeric: tabular-nums;
+            min-width: 60px;
+            text-align: center;
         }
 
         /* Cola de llamadas */
@@ -534,8 +597,13 @@
             background: rgba(30, 41, 59, 0.9);
             padding: 20px;
             border-radius: 12px;
-            border: 2px solid #10b981;
+            border: 2px solid var(--color-success);
             min-width: 200px;
+            display: none;
+        }
+
+        .call-queue.show {
+            display: block;
         }
 
         .queue-title {
@@ -550,13 +618,14 @@
         .queue-items {
             display: flex;
             gap: 10px;
+            flex-wrap: wrap;
         }
 
         .queue-item {
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            background: #10b981;
+            background: var(--color-success);
             color: white;
             display: flex;
             align-items: center;
@@ -565,7 +634,8 @@
             font-size: 1.2rem;
         }
 
-        /* Responsive */
+        /* ===== RESPONSIVE DESIGN MEJORADO ===== */
+        /* Tablet */
         @media (max-width: 1200px) {
             body {
                 flex-direction: column;
@@ -573,27 +643,45 @@
             
             .panel-firebase {
                 width: 100%;
-                height: 50vh;
+                height: 40vh;
                 min-width: unset;
+                border-right: none;
+                border-bottom: 2px solid var(--color-gray);
             }
             
             .panel-simulacion {
-                height: 50vh;
+                height: 60vh;
+                padding: 15px;
             }
             
             .metal-frame {
                 width: 350px;
-                height: 400px;
+                height: calc(140px * 3 + 40px);
+                margin: 0 auto;
+            }
+            
+            .floor {
+                height: 140px;
             }
             
             .elevator-cabin {
                 width: 230px;
-                height: 130px;
-                left: 60px;
+                height: 120px;
+                left: calc((350px - 230px) / 2);
             }
             
             .current-floor {
                 font-size: 2.2rem;
+            }
+            
+            .external-calls {
+                right: -70px;
+            }
+            
+            .call-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 1.3rem;
             }
             
             .emergency-panel {
@@ -606,7 +694,19 @@
             }
         }
 
+        /* Móvil */
         @media (max-width: 768px) {
+            :root {
+                --floor-height: 130px;
+                --cabin-width: 200px;
+                --cabin-height: 100px;
+            }
+            
+            .panel-firebase,
+            .panel-simulacion {
+                padding: 15px;
+            }
+            
             .firebase-header {
                 flex-direction: column;
                 gap: 15px;
@@ -621,17 +721,48 @@
             
             .state-indicators {
                 flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .state-box {
+                min-width: 120px;
+                padding: 10px 15px;
             }
             
             .metal-frame {
                 width: 300px;
-                height: 350px;
+                height: calc(var(--floor-height) * 3 + 40px);
+                border-width: 8px;
             }
             
             .elevator-cabin {
-                width: 200px;
-                height: 110px;
-                left: 50px;
+                width: var(--cabin-width);
+                height: var(--cabin-height);
+                left: calc((300px - var(--cabin-width)) / 2);
+            }
+            
+            .floor-number {
+                left: 15px;
+                font-size: 1.5rem;
+                padding: 8px 15px;
+            }
+            
+            .cabin-indicators {
+                padding: 10px 15px;
+            }
+            
+            .current-floor {
+                font-size: 2rem;
+            }
+            
+            .cabin-status {
+                font-size: 0.9rem;
+                padding: 4px 10px;
+            }
+            
+            .internal-controls {
+                padding: 10px;
+                gap: 10px;
             }
             
             .internal-btn {
@@ -640,30 +771,91 @@
                 font-size: 1.1rem;
             }
             
+            .external-calls {
+                right: -60px;
+                gap: 20px;
+            }
+            
             .call-btn {
-                width: 50px;
-                height: 50px;
-                font-size: 1.3rem;
+                width: 45px;
+                height: 45px;
+                font-size: 1.2rem;
+            }
+            
+            .door-timer {
+                bottom: 15px;
+                right: 15px;
+                padding: 10px 15px;
+            }
+            
+            .call-queue {
+                bottom: 80px;
+                right: 15px;
+                padding: 15px;
+            }
+        }
+
+        /* Pantallas muy pequeñas */
+        @media (max-width: 480px) {
+            :root {
+                --floor-height: 110px;
+                --cabin-width: 180px;
+                --cabin-height: 90px;
+            }
+            
+            .metal-frame {
+                width: 260px;
+                height: calc(var(--floor-height) * 3 + 40px);
+            }
+            
+            .elevator-cabin {
+                width: var(--cabin-width);
+                height: var(--cabin-height);
+                left: calc((260px - var(--cabin-width)) / 2);
+            }
+            
+            .sim-title h1 {
+                font-size: 1.8rem;
+            }
+            
+            .state-box {
+                min-width: 100px;
+                padding: 8px 12px;
+            }
+            
+            .state-value {
+                font-size: 1rem;
             }
         }
 
         /* Animación de movimiento */
         @keyframes moveUp {
             from { transform: translateY(0); }
-            to { transform: translateY(-1px); }
+            to { transform: translateY(-2px); }
         }
 
         @keyframes moveDown {
             from { transform: translateY(0); }
-            to { transform: translateY(1px); }
+            to { transform: translateY(2px); }
         }
 
         .moving-up {
-            animation: moveUp 0.5s ease-in-out infinite alternate;
+            animation: moveUp 0.6s ease-in-out infinite alternate;
         }
 
         .moving-down {
-            animation: moveDown 0.5s ease-in-out infinite alternate;
+            animation: moveDown 0.6s ease-in-out infinite alternate;
+        }
+
+        /* Efecto de vibración para motor activado */
+        @keyframes motorVibration {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-1px); }
+            75% { transform: translateX(1px); }
+        }
+
+        .motor-active {
+            animation: motorVibration 0.1s infinite;
         }
     </style>
 </head>
@@ -726,22 +918,22 @@
             <!-- Estructura metálica -->
             <div class="metal-frame">
                 <!-- Piso 3 -->
-                <div class="floor" style="border-bottom: 3px solid #1e293b;">
+                <div class="floor" id="floor3">
                     <div class="floor-number">3</div>
                 </div>
                 
                 <!-- Piso 2 -->
-                <div class="floor" style="border-bottom: 3px solid #1e293b;">
+                <div class="floor" id="floor2">
                     <div class="floor-number">2</div>
                 </div>
                 
                 <!-- Piso 1 -->
-                <div class="floor">
+                <div class="floor" id="floor1">
                     <div class="floor-number">1</div>
                 </div>
 
-                <!-- Cabina del ascensor -->
-                <div class="elevator-cabin" id="elevatorCabin" style="bottom: 20px;">
+                <!-- Cabina del ascensor - CLASES DE PISO AGREGADAS -->
+                <div class="elevator-cabin floor-1" id="elevatorCabin">
                     <!-- Indicadores -->
                     <div class="cabin-indicators">
                         <div class="current-floor" id="cabinFloor">1</div>
@@ -758,7 +950,7 @@
                         </button>
                     </div>
                     
-                    <!-- Puertas -->
+                    <!-- Puertas con animación mejorada -->
                     <div class="cabin-doors" id="cabinDoors">
                         <div class="door door-left"></div>
                         <div class="door door-right"></div>
@@ -835,8 +1027,10 @@
             emergencia: false,
             movimiento: 'DETENIDO',
             temporizadorPuertas: null,
+            temporizadorDisplay: null,
             colaLlamadas: [],
-            llamadasExternas: []
+            llamadasExternas: [],
+            motorActivado: false
         };
 
         // ===== ELEMENTOS DOM =====
@@ -935,11 +1129,11 @@
             }
         }
 
-        // ===== FUNCIONES DE SIMULACIÓN =====
+        // ===== FUNCIONES DE SIMULACIÓN MEJORADAS =====
         function procesarMensajeParaSimulacion(mensaje, piso, estadoCodigo) {
             console.log('Procesando mensaje:', mensaje);
             
-            // 1. MOVIMIENTO - SUBIR
+            // 1. MOVIMIENTO - SUBIR (PRIMER MENSAJE CON DESTINO)
             if (mensaje.includes('[ESTADO_MOVIMIENTO_SUBIENDO]')) {
                 const pisoDestino = extraerPisoDestino(mensaje);
                 iniciarMovimiento('SUBIENDO', pisoDestino);
@@ -950,7 +1144,7 @@
                 confirmarMotorActivado('SUBIENDO');
             }
             
-            // 3. MOVIMIENTO - BAJAR
+            // 3. MOVIMIENTO - BAJAR (PRIMER MENSAJE CON DESTINO)
             else if (mensaje.includes('[ESTADO_MOVIMIENTO_BAJANDO]')) {
                 const pisoDestino = extraerPisoDestino(mensaje);
                 iniciarMovimiento('BAJANDO', pisoDestino);
@@ -967,14 +1161,15 @@
                 llegarAPiso(pisoLlegada);
             }
             
-            // 6. APERTURA DE PUERTAS
+            // 6. APERTURA DE PUERTAS - INICIO
             else if (mensaje.includes('[ESTADO_APERTURA_PUERTAS]')) {
-                abrirPuertas();
+                const piso = extraerPisoDestino(mensaje) || estadoSimulacion.pisoActual;
+                iniciarAperturaPuertas(piso);
             }
             
             // 7. SECUENCIA DE APERTURA
             else if (mensaje.includes('Apertura: Activando relé(s)')) {
-                iniciarSecuenciaApertura();
+                continuarAperturaPuertas();
             }
             
             // 8. PUERTAS TOTALMENTE ABIERTAS
@@ -1042,7 +1237,7 @@
             }
         }
 
-        // ===== FUNCIONES ESPECÍFICAS DE SIMULACIÓN =====
+        // ===== FUNCIONES ESPECÍFICAS DE SIMULACIÓN - MEJORADAS =====
         function extraerPisoDestino(mensaje) {
             const match = mensaje.match(/P(\d+)/);
             return match ? parseInt(match[1]) : null;
@@ -1063,107 +1258,106 @@
             return match ? [parseInt(match[1]), parseInt(match[2])] : [0, 0];
         }
 
+        // ===== FUNCIÓN MEJORADA PARA INICIAR MOVIMIENTO =====
         function iniciarMovimiento(direccion, pisoDestino) {
             if (estadoSimulacion.emergencia) return;
             
+            // Si las puertas están abiertas, cerrarlas primero
+            if (estadoSimulacion.puertasAbiertas) {
+                cerrarPuertas();
+                // Esperar a que se cierren antes de mover (2 segundos para cerrar)
+                setTimeout(() => {
+                    realizarMovimiento(direccion, pisoDestino);
+                }, 2000);
+            } else {
+                realizarMovimiento(direccion, pisoDestino);
+            }
+        }
+
+        function realizarMovimiento(direccion, pisoDestino) {
             estadoSimulacion.movimiento = direccion;
             estadoSimulacion.pisoDestino = pisoDestino;
             estadoSimulacion.estado = direccion;
             
-            // Cerrar puertas si están abiertas
-            if (estadoSimulacion.puertasAbiertas) {
-                cerrarPuertas();
-                // Esperar a que se cierren antes de mover
-                setTimeout(() => {
-                    moverCabina(direccion, pisoDestino);
-                }, 2000);
-            } else {
-                moverCabina(direccion, pisoDestino);
-            }
+            // Actualizar clase de piso en la cabina
+            elementos.elevatorCabin.className = 'elevator-cabin';
+            elementos.elevatorCabin.classList.add(`floor-${pisoDestino}`);
             
             // Actualizar UI
             elementos.cabinStatus.textContent = `${direccion} → P${pisoDestino}`;
             elementos.targetFloorDisplay.textContent = `P${pisoDestino}`;
             elementos.currentState.textContent = direccion;
-            elementos.elevatorCabin.classList.add(`moving-${direccion.toLowerCase()}`);
             
-            // Actualizar clase de movimiento
+            // Aplicar animación de movimiento
             elementos.elevatorCabin.classList.remove('moving-up', 'moving-down');
             elementos.elevatorCabin.classList.add(`moving-${direccion.toLowerCase()}`);
+            
+            // Calcular tiempo de movimiento basado en distancia
+            const distancia = Math.abs(pisoDestino - estadoSimulacion.pisoActual);
+            const tiempoMovimiento = distancia * 2000; // 2 segundos por piso
+            
+            // Actualizar piso actual al final del movimiento
+            setTimeout(() => {
+                estadoSimulacion.pisoActual = pisoDestino;
+                elementos.cabinFloor.textContent = pisoDestino;
+                elementos.currentFloorDisplay.textContent = pisoDestino;
+            }, tiempoMovimiento);
         }
 
         function confirmarMotorActivado(direccion) {
             if (estadoSimulacion.emergencia) return;
             
-            // Efecto visual de confirmación
-            elementos.elevatorCabin.style.boxShadow = 
-                `0 0 30px ${direccion === 'SUBIENDO' ? '#3b82f6' : '#10b981'}`;
+            // Efecto visual de motor activado
+            elementos.elevatorCabin.classList.add('motor-active');
             
             setTimeout(() => {
-                elementos.elevatorCabin.style.boxShadow = 
-                    '0 5px 20px rgba(0, 0, 0, 0.3), inset 0 0 20px rgba(255, 255, 255, 0.1)';
-            }, 500);
-        }
-
-        function moverCabina(direccion, pisoDestino) {
-            // Calcular posición bottom (piso 1: 20px, piso 2: 200px, piso 3: 380px)
-            const posiciones = {1: 20, 2: 200, 3: 380};
-            const nuevaPosicion = posiciones[pisoDestino];
+                elementos.elevatorCabin.classList.remove('motor-active');
+            }, 1000);
             
-            if (nuevaPosicion !== undefined) {
-                // Duración del movimiento basada en distancia
-                const distancia = Math.abs(pisoDestino - estadoSimulacion.pisoActual);
-                const duracion = distancia * 2000; // 2 segundos por piso
-                
-                elementos.elevatorCabin.style.transition = `bottom ${duracion}ms cubic-bezier(0.4, 0, 0.2, 1)`;
-                elementos.elevatorCabin.style.bottom = `${nuevaPosicion}px`;
-                
-                // Actualizar piso actual durante el movimiento
-                setTimeout(() => {
-                    estadoSimulacion.pisoActual = pisoDestino;
-                    elementos.cabinFloor.textContent = pisoDestino;
-                    elementos.currentFloorDisplay.textContent = pisoDestino;
-                }, duracion);
-            }
+            estadoSimulacion.motorActivado = true;
         }
 
+        // ===== FUNCIÓN MEJORADA PARA LLEGAR A PISO =====
         function llegarAPiso(pisoLlegada) {
             // Detener movimiento
             estadoSimulacion.movimiento = 'DETENIDO';
             elementos.elevatorCabin.classList.remove('moving-up', 'moving-down');
             
-            // Posicionar exactamente en el piso
-            const posiciones = {1: 20, 2: 200, 3: 380};
-            elementos.elevatorCabin.style.transition = 'bottom 100ms ease-out';
-            elementos.elevatorCabin.style.bottom = `${posiciones[pisoLlegada]}px`;
+            // Actualizar clase de piso
+            elementos.elevatorCabin.className = 'elevator-cabin';
+            elementos.elevatorCabin.classList.add(`floor-${pisoLlegada}`);
             
             estadoSimulacion.pisoActual = pisoLlegada;
             elementos.cabinFloor.textContent = pisoLlegada;
             elementos.currentFloorDisplay.textContent = pisoLlegada;
             
-            // Esperar 0.5s y abrir puertas
+            // Esperar 0.5s (seguridad) y abrir puertas
             setTimeout(() => {
                 if (!estadoSimulacion.emergencia) {
-                    abrirPuertas();
+                    iniciarAperturaPuertas(pisoLlegada);
                 }
             }, 500);
         }
 
-        function abrirPuertas() {
+        // ===== SISTEMA DE PUERTAS MEJORADO =====
+        function iniciarAperturaPuertas(piso) {
             if (estadoSimulacion.emergencia) return;
             
             estadoSimulacion.puertasAbiertas = true;
             estadoSimulacion.estado = 'ABRIENDO PUERTAS';
             
+            // Aplicar animación de apertura
+            elementos.cabinDoors.classList.remove('doors-closing');
             elementos.cabinDoors.classList.add('doors-open');
+            
             elementos.cabinStatus.textContent = 'ABRIENDO PUERTAS...';
             elementos.currentState.textContent = 'ABRIENDO PUERTAS';
             
-            // Temporizador visual
-            mostrarTemporizadorPuertas(10, 'Apertura');
+            // Iniciar temporizador de 10 segundos
+            iniciarTemporizadorCierre(10);
         }
 
-        function iniciarSecuenciaApertura() {
+        function continuarAperturaPuertas() {
             elementos.cabinStatus.textContent = 'DESBLOQUEANDO CERRADURAS...';
         }
 
@@ -1171,9 +1365,6 @@
             estadoSimulacion.estado = 'PUERTAS ABIERTAS';
             elementos.cabinStatus.textContent = 'PUERTAS ABIERTAS - ESPERANDO';
             elementos.currentState.textContent = 'ESPERANDO';
-            
-            // Iniciar temporizador de cierre
-            iniciarTemporizadorCierre(10);
         }
 
         function mantenerPuertasAbiertas() {
@@ -1187,41 +1378,54 @@
             estadoSimulacion.puertasAbiertas = false;
             estadoSimulacion.estado = 'CERRANDO PUERTAS';
             
+            // Aplicar animación de cierre
             elementos.cabinDoors.classList.remove('doors-open');
+            elementos.cabinDoors.classList.add('doors-closing');
+            
             elementos.cabinStatus.textContent = 'CERRANDO PUERTAS...';
             elementos.currentState.textContent = 'CERRANDO PUERTAS';
             
             // Ocultar temporizador
             elementos.doorTimer.classList.remove('show');
             
+            // Limpiar temporizador
+            if (estadoSimulacion.temporizadorPuertas) {
+                clearTimeout(estadoSimulacion.temporizadorPuertas);
+                estadoSimulacion.temporizadorPuertas = null;
+            }
+            
+            if (estadoSimulacion.temporizadorDisplay) {
+                clearInterval(estadoSimulacion.temporizadorDisplay);
+                estadoSimulacion.temporizadorDisplay = null;
+            }
+            
             // Después de cerrar, cambiar a ESPERANDO
             setTimeout(() => {
+                elementos.cabinDoors.classList.remove('doors-closing');
+                
                 if (!estadoSimulacion.emergencia) {
                     estadoSimulacion.estado = 'ESPERANDO';
                     elementos.cabinStatus.textContent = 'ESPERANDO';
                     elementos.currentState.textContent = 'ESPERANDO';
                 }
-            }, 2000);
+            }, 800); // Tiempo de animación de cierre
         }
 
-        function mostrarTemporizadorPuertas(segundos, tipo) {
+        function iniciarTemporizadorCierre(segundos) {
+            // Mostrar temporizador
             elementos.timerDisplay.textContent = `${segundos}s`;
             elementos.doorTimer.classList.add('show');
             
             let contador = segundos;
-            const intervalo = setInterval(() => {
+            estadoSimulacion.temporizadorDisplay = setInterval(() => {
                 contador--;
                 elementos.timerDisplay.textContent = `${contador}s`;
                 
                 if (contador <= 0) {
-                    clearInterval(intervalo);
+                    clearInterval(estadoSimulacion.temporizadorDisplay);
                     elementos.doorTimer.classList.remove('show');
                 }
             }, 1000);
-        }
-
-        function iniciarTemporizadorCierre(segundos) {
-            mostrarTemporizadorPuertas(segundos, 'Cierre');
             
             // Programar cierre automático
             if (estadoSimulacion.temporizadorPuertas) {
@@ -1233,6 +1437,7 @@
             }, segundos * 1000);
         }
 
+        // ===== SISTEMA DE EMERGENCIA =====
         function activarEmergencia(razon) {
             estadoSimulacion.emergencia = true;
             estadoSimulacion.movimiento = 'DETENIDO';
@@ -1240,6 +1445,12 @@
             // Detener cualquier temporizador
             if (estadoSimulacion.temporizadorPuertas) {
                 clearTimeout(estadoSimulacion.temporizadorPuertas);
+                estadoSimulacion.temporizadorPuertas = null;
+            }
+            
+            if (estadoSimulacion.temporizadorDisplay) {
+                clearInterval(estadoSimulacion.temporizadorDisplay);
+                estadoSimulacion.temporizadorDisplay = null;
             }
             
             // Actualizar UI
@@ -1255,6 +1466,9 @@
             elementos.internalBtns.forEach(btn => btn.disabled = true);
             elementos.callBtns.forEach(btn => btn.disabled = true);
             elementos.btnOpenDoor.disabled = true;
+            
+            // Ocultar temporizador
+            elementos.doorTimer.classList.remove('show');
         }
 
         function mantenerEmergencia() {
@@ -1262,6 +1476,7 @@
             elementos.cabinStatus.textContent = 'SISTEMA BLOQUEADO';
         }
 
+        // ===== SISTEMA DE LLAMADAS =====
         function mostrarLlamadaExterna(piso) {
             if (!piso) return;
             
@@ -1297,10 +1512,21 @@
             
             // Si está detenido, iniciar movimiento inmediato
             if (estadoSimulacion.movimiento === 'DETENIDO' && !estadoSimulacion.emergencia) {
-                iniciarMovimiento(
-                    piso > estadoSimulacion.pisoActual ? 'SUBIENDO' : 'BAJANDO',
-                    piso
-                );
+                // Si las puertas están abiertas, cerrarlas primero
+                if (estadoSimulacion.puertasAbiertas) {
+                    cerrarPuertas();
+                    setTimeout(() => {
+                        iniciarMovimiento(
+                            piso > estadoSimulacion.pisoActual ? 'SUBIENDO' : 'BAJANDO',
+                            piso
+                        );
+                    }, 2000);
+                } else {
+                    iniciarMovimiento(
+                        piso > estadoSimulacion.pisoActual ? 'SUBIENDO' : 'BAJANDO',
+                        piso
+                    );
+                }
             }
         }
 
@@ -1331,12 +1557,13 @@
             
             // Mostrar/ocultar panel según si hay llamadas
             if (estadoSimulacion.llamadasExternas.length > 0 || estadoSimulacion.colaLlamadas.length > 0) {
-                elementos.callQueue.style.display = 'block';
+                elementos.callQueue.classList.add('show');
             } else {
-                elementos.callQueue.style.display = 'none';
+                elementos.callQueue.classList.remove('show');
             }
         }
 
+        // ===== REINICIO Y ESTADO INICIAL =====
         function reiniciarSimulacion() {
             // Resetear estado
             estadoSimulacion = {
@@ -1347,14 +1574,16 @@
                 emergencia: false,
                 movimiento: 'DETENIDO',
                 temporizadorPuertas: null,
+                temporizadorDisplay: null,
                 colaLlamadas: [],
-                llamadasExternas: []
+                llamadasExternas: [],
+                motorActivado: false
             };
             
             // Resetear UI
-            elementos.elevatorCabin.classList.remove('emergency', 'moving-up', 'moving-down');
-            elementos.elevatorCabin.style.bottom = '20px';
-            elementos.cabinDoors.classList.remove('doors-open');
+            elementos.elevatorCabin.className = 'elevator-cabin floor-1';
+            elementos.elevatorCabin.classList.remove('emergency', 'moving-up', 'moving-down', 'motor-active');
+            elementos.cabinDoors.classList.remove('doors-open', 'doors-closing');
             elementos.cabinFloor.textContent = '1';
             elementos.cabinStatus.textContent = 'ESPERANDO';
             elementos.currentFloorDisplay.textContent = '1';
@@ -1363,6 +1592,7 @@
             elementos.currentState.style.color = '';
             elementos.emergencyPanel.classList.remove('show');
             elementos.doorTimer.classList.remove('show');
+            elementos.callQueue.classList.remove('show');
             
             // Reactivar controles
             elementos.internalBtns.forEach(btn => btn.disabled = false);
@@ -1371,7 +1601,6 @@
             
             // Limpiar cola visual
             elementos.queueItems.innerHTML = '';
-            elementos.callQueue.style.display = 'none';
         }
 
         function sistemaListo() {
@@ -1396,7 +1625,15 @@
         // Botón abrir puerta manualmente
         elementos.btnOpenDoor.addEventListener('click', () => {
             if (!estadoSimulacion.emergencia && estadoSimulacion.movimiento === 'DETENIDO') {
-                abrirPuertas();
+                if (estadoSimulacion.puertasAbiertas) {
+                    // Si ya están abiertas, reiniciar temporizador
+                    if (estadoSimulacion.temporizadorPuertas) {
+                        clearTimeout(estadoSimulacion.temporizadorPuertas);
+                    }
+                    iniciarTemporizadorCierre(10);
+                } else {
+                    iniciarAperturaPuertas(estadoSimulacion.pisoActual);
+                }
             }
         });
 
