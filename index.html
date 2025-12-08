@@ -2,71 +2,105 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Monitor Ascensor - Firebase Live</title>
+<title>Monitor Ascensor - Firebase en Tiempo Real</title>
 <style>
-    body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
-    h1 { text-align: center; }
-    #log { background: white; padding: 15px; border-radius: 10px;
-           box-shadow: 0 0 10px rgba(0,0,0,0.2); max-width: 700px; margin: auto; }
-    .item { padding: 8px; border-bottom: 1px solid #ddd; }
-    .time { color: #777; font-size: 0.8em; }
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f0f2f5; }
+    h1 { color: #333; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th { background-color: #4CAF50; color: white; }
+    tr:nth-child(even) { background-color: #f9f9f9; }
 </style>
 </head>
 <body>
 
-<h1>📡 Monitor Ascensor ESP32 – Firebase en Tiempo Real</h1>
-<div id="log">Cargando datos...</div>
+<h1>Monitor de Ascensor (Firebase Tiempo Real)</h1>
+<table>
+    <thead>
+        <tr>
+            <th>Fecha y Hora</th>
+            <th>Piso</th>
+            <th>Estado</th>
+            <th>Mensaje</th>
+        </tr>
+    </thead>
+    <tbody id="tablaEventos">
+    </tbody>
+</table>
 
-<!-- SDK de Firebase -->
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
-// =============================
-// CONFIGURACIÓN FIREBASE
-// =============================
-const firebaseConfig = {
-    apiKey: "AIzaSyAU31I1rNQCDLxG-ayjKS61uTo6oUuCmCA",
-    authDomain: "monitor-ascensor.firebaseapp.com",
-    databaseURL: "https://monitor-ascensor-default-rtdb.firebaseio.com",
-    projectId: "monitor-ascensor",
-    storageBucket: "monitor-ascensor.firebasestorage.app",
-    messagingSenderId: "64032364230",
-    appId: "1:64032364230:web:8afb090f6debefeccfa9c7"
-};
+    // ===============================
+    // CONFIGURACIÓN FIREBASE
+    // ===============================
+    const firebaseConfig = {
+        apiKey: "AIzaSyAU31I1rNQCDLxG-ayjKS61uTo6oUuCmCA",
+        authDomain: "monitor-ascensor.firebaseapp.com",
+        databaseURL: "https://monitor-ascensor-default-rtdb.firebaseio.com",
+        projectId: "monitor-ascensor",
+        storageBucket: "monitor-ascensor.firebasestorage.app",
+        messagingSenderId: "64032364230",
+        appId: "1:64032364230:web:8afb090f6debefeccfa9c7"
+    };
 
-firebase.initializeApp(firebaseConfig);
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-// =============================
-// LEER MENSAJES EN TIEMPO REAL
-// =============================
-const logDiv = document.getElementById("log");
+    // ===============================
+    // VARIABLES PARA CONVERTIR MILLS
+    // ===============================
+    let millisESP32_inicio = null;
 
-firebase.database().ref("messages").on("value", snapshot => {
-    const data = snapshot.val();
-    if (!data) {
-        logDiv.innerHTML = "Aún no hay mensajes...";
-        return;
+    function registrarInicio(millisLeido) {
+        if (millisESP32_inicio === null) {
+            millisESP32_inicio = millisLeido;
+        }
     }
 
-    let html = "";
-    const keys = Object.keys(data).reverse(); // Últimos mensajes arriba
+    function convertirMillisAFechaReal(millisESP32) {
+        if (millisESP32_inicio === null) return "Calculando...";
+        const ahora = Date.now();
+        const offset = millisESP32_inicio - millisESP32;
+        const fechaReal = new Date(ahora - offset);
+        return fechaReal.toLocaleString();
+    }
 
-    keys.forEach(id => {
-        const msg = data[id];
-        let fecha = new Date(msg.ts).toLocaleString("es-BO");
-
-        html += `
-            <div class="item">
-                <b>${msg.mensaje}</b><br>
-                Piso: ${msg.piso} | Estado: ${msg.estado}<br>
-                <span class="time">${fecha}</span>
-            </div>
+    // ===============================
+    // FUNCION PARA MOSTRAR EVENTOS
+    // ===============================
+    function agregarEventoTabla(fecha, piso, estado, mensaje) {
+        const tbody = document.getElementById("tablaEventos");
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>${fecha}</td>
+            <td>${piso}</td>
+            <td>${estado}</td>
+            <td>${mensaje}</td>
         `;
-    });
+        // Insertar al inicio para que aparezcan los más recientes arriba
+        tbody.insertBefore(tr, tbody.firstChild);
+    }
 
-    logDiv.innerHTML = html;
-});
+    // ===============================
+    // SUSCRIPCIÓN A FIREBASE
+    // ===============================
+    const refMensajes = db.ref("messages"); // Ajusta si tu nodo es diferente
+
+    refMensajes.on("child_added", snapshot => {
+        const data = snapshot.val();
+        if (!data) return;
+
+        const ts = data.ts || 0;  // millis desde ESP32
+        registrarInicio(ts);
+
+        const fecha = convertirMillisAFechaReal(ts);
+        const piso = data.piso || "-";
+        const estado = data.estado || "-";
+        const mensaje = data.mensaje || "";
+
+        agregarEventoTabla(fecha, piso, estado, mensaje);
+    });
 </script>
 
 </body>
