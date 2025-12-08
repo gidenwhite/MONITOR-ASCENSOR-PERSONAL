@@ -30,7 +30,9 @@
             --floor-height: 180px;
             --cabin-width: 280px;
             --cabin-height: 150px;
-            --door-animation-time: 0.8s;
+            --door-open-time: 10000ms;
+            --door-close-time: 3000ms;
+            --door-animation-time: 800ms;
         }
 
         body {
@@ -235,7 +237,7 @@
         /* Estructura metálica (tubo cuadrado) */
         .metal-frame {
             width: 450px;
-            height: calc(var(--floor-height) * 3 + 40px); /* 3 pisos + margen */
+            height: calc(var(--floor-height) * 3 + 40px);
             background: linear-gradient(135deg, #475569 0%, #334155 100%);
             border-radius: 15px;
             position: relative;
@@ -285,8 +287,8 @@
             background: linear-gradient(135deg, #4f46e5 0%, var(--color-primary) 100%);
             border-radius: 12px;
             position: absolute;
-            left: calc((450px - var(--cabin-width)) / 2); /* Centrado horizontal */
-            bottom: 20px; /* Posición inicial - PISO 1 */
+            left: calc((450px - var(--cabin-width)) / 2);
+            bottom: 20px;
             transition: bottom 2s cubic-bezier(0.4, 0, 0.2, 1);
             box-shadow: 
                 0 5px 20px rgba(0, 0, 0, 0.3),
@@ -299,9 +301,9 @@
         }
 
         /* Posiciones específicas para cada piso */
-        .elevator-cabin.floor-1 { bottom: 20px; } /* Piso 1 */
-        .elevator-cabin.floor-2 { bottom: calc(var(--floor-height) + 20px); } /* Piso 2 */
-        .elevator-cabin.floor-3 { bottom: calc(var(--floor-height) * 2 + 20px); } /* Piso 3 */
+        .elevator-cabin.floor-1 { bottom: 20px; }
+        .elevator-cabin.floor-2 { bottom: calc(var(--floor-height) + 20px); }
+        .elevator-cabin.floor-3 { bottom: calc(var(--floor-height) * 2 + 20px); }
 
         /* Cabina en emergencia */
         .elevator-cabin.emergency {
@@ -391,7 +393,7 @@
             box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
         }
 
-        /* ===== PUERTAS - ANIMACIÓN MEJORADA ===== */
+        /* ===== PUERTAS - SISTEMA PERFECTO ===== */
         .cabin-doors {
             position: absolute;
             top: 0;
@@ -401,7 +403,6 @@
             pointer-events: none;
             overflow: hidden;
             border-radius: 10px;
-            display: flex;
         }
 
         .door {
@@ -429,6 +430,7 @@
             transform-origin: right center;
         }
 
+        /* Estado: Puertas abiertas */
         .doors-open .door-left {
             transform: perspective(500px) translateX(-100%) rotateY(-10deg);
         }
@@ -437,6 +439,16 @@
             transform: perspective(500px) translateX(100%) rotateY(10deg);
         }
 
+        /* Estado: Puertas cerradas */
+        .doors-closed .door-left {
+            transform: translateX(0%) rotateY(0deg);
+        }
+
+        .doors-closed .door-right {
+            transform: translateX(0%) rotateY(0deg);
+        }
+
+        /* Estado: Cerrando puertas */
         .doors-closing .door-left {
             transform: perspective(500px) translateX(0%) rotateY(0deg);
             transition-timing-function: cubic-bezier(0.18, 0.89, 0.32, 1.28);
@@ -932,7 +944,7 @@
                     <div class="floor-number">1</div>
                 </div>
 
-                <!-- Cabina del ascensor - CLASES DE PISO AGREGADAS -->
+                <!-- Cabina del ascensor -->
                 <div class="elevator-cabin floor-1" id="elevatorCabin">
                     <!-- Indicadores -->
                     <div class="cabin-indicators">
@@ -950,8 +962,8 @@
                         </button>
                     </div>
                     
-                    <!-- Puertas con animación mejorada -->
-                    <div class="cabin-doors" id="cabinDoors">
+                    <!-- Puertas -->
+                    <div class="cabin-doors doors-closed" id="cabinDoors">
                         <div class="door door-left"></div>
                         <div class="door door-right"></div>
                     </div>
@@ -1024,13 +1036,15 @@
             pisoDestino: null,
             estado: 'ESPERANDO',
             puertasAbiertas: false,
+            puertasCerradas: true,
             emergencia: false,
             movimiento: 'DETENIDO',
             temporizadorPuertas: null,
             temporizadorDisplay: null,
             colaLlamadas: [],
             llamadasExternas: [],
-            motorActivado: false
+            motorActivado: false,
+            enVentanaInterna: false
         };
 
         // ===== ELEMENTOS DOM =====
@@ -1087,16 +1101,14 @@
             const tr = document.createElement('tr');
             
             // Determinar clase según tipo de mensaje
-            let rowClass = '';
             if (mensaje.includes('EMERGENCIA') || mensaje.includes('!!!')) {
-                rowClass = 'emergency-row';
                 tr.style.backgroundColor = 'rgba(220, 38, 38, 0.1)';
             } else if (mensaje.includes('SUBIR') || mensaje.includes('BAJAR')) {
-                rowClass = 'movement-row';
                 tr.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
             } else if (mensaje.includes('PUERTA') || mensaje.includes('Apertura')) {
-                rowClass = 'door-row';
                 tr.style.backgroundColor = 'rgba(34, 197, 94, 0.1)';
+            } else if (mensaje.includes('[ESTADO_VENTANA_INTERNA]')) {
+                tr.style.backgroundColor = 'rgba(249, 115, 22, 0.1)';
             }
             
             tr.innerHTML = `
@@ -1133,7 +1145,7 @@
         function procesarMensajeParaSimulacion(mensaje, piso, estadoCodigo) {
             console.log('Procesando mensaje:', mensaje);
             
-            // 1. MOVIMIENTO - SUBIR (PRIMER MENSAJE CON DESTINO)
+            // 1. MOVIMIENTO - SUBIR
             if (mensaje.includes('[ESTADO_MOVIMIENTO_SUBIENDO]')) {
                 const pisoDestino = extraerPisoDestino(mensaje);
                 iniciarMovimiento('SUBIENDO', pisoDestino);
@@ -1144,7 +1156,7 @@
                 confirmarMotorActivado('SUBIENDO');
             }
             
-            // 3. MOVIMIENTO - BAJAR (PRIMER MENSAJE CON DESTINO)
+            // 3. MOVIMIENTO - BAJAR
             else if (mensaje.includes('[ESTADO_MOVIMIENTO_BAJANDO]')) {
                 const pisoDestino = extraerPisoDestino(mensaje);
                 iniciarMovimiento('BAJANDO', pisoDestino);
@@ -1164,12 +1176,12 @@
             // 6. APERTURA DE PUERTAS - INICIO
             else if (mensaje.includes('[ESTADO_APERTURA_PUERTAS]')) {
                 const piso = extraerPisoDestino(mensaje) || estadoSimulacion.pisoActual;
-                iniciarAperturaPuertas(piso);
+                prepararAperturaPuertas(piso);
             }
             
-            // 7. SECUENCIA DE APERTURA
-            else if (mensaje.includes('Apertura: Activando relé(s)')) {
-                continuarAperturaPuertas();
+            // 7. ACTIVACIÓN DE CERRADURAS - ABRIR PUERTAS (10 SEGUNDOS)
+            else if (mensaje.includes('Apertura: Activando relé(s) de cerradura por 10000 ms')) {
+                abrirPuertas();
             }
             
             // 8. PUERTAS TOTALMENTE ABIERTAS
@@ -1178,55 +1190,60 @@
             }
             
             // 9. ESPERA CON PUERTAS ABIERTAS
-            else if (mensaje.includes('Puertas abiertas (esperando)')) {
+            else if (mensaje.includes('Puertas abiertas (esperando) por 10000 ms')) {
                 mantenerPuertasAbiertas();
             }
             
-            // 10. FIN DE VENTANA
-            else if (mensaje.includes('Fin de ventana de puertas')) {
-                cerrarPuertas();
+            // 10. VENTANA INTERNA - CERRAR PUERTAS
+            else if (mensaje.includes('[ESTADO_VENTANA_INTERNA]')) {
+                entrarEnVentanaInterna();
             }
             
-            // 11. EMERGENCIA
+            // 11. FIN DE VENTANA
+            else if (mensaje.includes('Fin de ventana de puertas')) {
+                finalizarVentanaPuertas();
+            }
+            
+            // 12. EMERGENCIA
             else if (mensaje.includes('!!! ENTRANDO EN ESTADO_EMERGENCIA:')) {
                 const razon = mensaje.split(': ')[1] || 'Razón desconocida';
                 activarEmergencia(razon);
             }
             
-            // 12. ESTADO DE EMERGENCIA
+            // 13. ESTADO DE EMERGENCIA
             else if (mensaje.includes('[ESTADO_EMERGENCIA]')) {
                 mantenerEmergencia();
             }
             
-            // 13. LLAMADAS EXTERNAS
+            // 14. LLAMADAS EXTERNAS
             else if (mensaje.includes('Llamada externa agregada')) {
                 const pisoLlamada = extraerPisoLlamada(mensaje);
                 mostrarLlamadaExterna(pisoLlamada);
             }
             
-            // 14. ORDEN INTERNA
+            // 15. ORDEN INTERNA
             else if (mensaje.includes('Orden INTERNA')) {
                 const pisoDestino = extraerPisoLlamada(mensaje);
                 procesarOrdenInterna(pisoDestino);
             }
             
-            // 15. COLA DE LLAMADAS
+            // 16. COLA DE LLAMADAS
             else if (mensaje.includes('Cola extern:')) {
                 const cola = extraerColaLlamadas(mensaje);
                 actualizarColaLlamadas(cola);
             }
             
-            // 16. INICIO DEL SISTEMA
+            // 17. INICIO DEL SISTEMA
             else if (mensaje.includes('=== INICIO SISTEMA ASCENSOR')) {
                 reiniciarSimulacion();
             }
             
-            // 17. AUTODIAGNÓSTICO OK
+            // 18. AUTODIAGNÓSTICO OK
             else if (mensaje.includes('=== AUTODIAGNÓSTICO OK ===')) {
                 sistemaListo();
             }
             
-            // 18. MOTOR PARADO
+            // 19. MOTOR PARADO
             else if (mensaje.includes('Motor PARADO')) {
                 // Solo procesar si no es una llegada reciente
                 setTimeout(() => {
@@ -1237,7 +1254,7 @@
             }
         }
 
-        // ===== FUNCIONES ESPECÍFICAS DE SIMULACIÓN - MEJORADAS =====
+        // ===== FUNCIONES ESPECÍFICAS DE SIMULACIÓN =====
         function extraerPisoDestino(mensaje) {
             const match = mensaje.match(/P(\d+)/);
             return match ? parseInt(match[1]) : null;
@@ -1258,7 +1275,6 @@
             return match ? [parseInt(match[1]), parseInt(match[2])] : [0, 0];
         }
 
-        // ===== FUNCIÓN MEJORADA PARA INICIAR MOVIMIENTO =====
         function iniciarMovimiento(direccion, pisoDestino) {
             if (estadoSimulacion.emergencia) return;
             
@@ -1317,7 +1333,6 @@
             estadoSimulacion.motorActivado = true;
         }
 
-        // ===== FUNCIÓN MEJORADA PARA LLEGAR A PISO =====
         function llegarAPiso(pisoLlegada) {
             // Detener movimiento
             estadoSimulacion.movimiento = 'DETENIDO';
@@ -1331,51 +1346,77 @@
             elementos.cabinFloor.textContent = pisoLlegada;
             elementos.currentFloorDisplay.textContent = pisoLlegada;
             
-            // Esperar 0.5s (seguridad) y abrir puertas
+            // Esperar 0.5s (seguridad) y preparar apertura
             setTimeout(() => {
                 if (!estadoSimulacion.emergencia) {
-                    iniciarAperturaPuertas(pisoLlegada);
+                    elementos.cabinStatus.textContent = 'PREPARANDO APERTURA...';
                 }
             }, 500);
         }
 
-        // ===== SISTEMA DE PUERTAS MEJORADO =====
-        function iniciarAperturaPuertas(piso) {
+        function prepararAperturaPuertas(piso) {
+            if (estadoSimulacion.emergencia) return;
+            
+            estadoSimulacion.estado = 'PREPARANDO APERTURA';
+            elementos.cabinStatus.textContent = 'PREPARANDO APERTURA...';
+            elementos.currentState.textContent = 'PREPARANDO APERTURA';
+        }
+
+        function abrirPuertas() {
             if (estadoSimulacion.emergencia) return;
             
             estadoSimulacion.puertasAbiertas = true;
+            estadoSimulacion.puertasCerradas = false;
             estadoSimulacion.estado = 'ABRIENDO PUERTAS';
             
             // Aplicar animación de apertura
-            elementos.cabinDoors.classList.remove('doors-closing');
+            elementos.cabinDoors.classList.remove('doors-closed', 'doors-closing');
             elementos.cabinDoors.classList.add('doors-open');
             
             elementos.cabinStatus.textContent = 'ABRIENDO PUERTAS...';
             elementos.currentState.textContent = 'ABRIENDO PUERTAS';
             
             // Iniciar temporizador de 10 segundos
-            iniciarTemporizadorCierre(10);
-        }
-
-        function continuarAperturaPuertas() {
-            elementos.cabinStatus.textContent = 'DESBLOQUEANDO CERRADURAS...';
+            iniciarTemporizadorApertura(10);
         }
 
         function puertasTotalmenteAbiertas() {
             estadoSimulacion.estado = 'PUERTAS ABIERTAS';
-            elementos.cabinStatus.textContent = 'PUERTAS ABIERTAS - ESPERANDO';
-            elementos.currentState.textContent = 'ESPERANDO';
+            elementos.cabinStatus.textContent = 'PUERTAS ABIERTAS';
+            elementos.currentState.textContent = 'PUERTAS ABIERTAS';
         }
 
         function mantenerPuertasAbiertas() {
             // Confirmar estado
-            elementos.cabinStatus.textContent = 'PUERTAS ABIERTAS';
+            elementos.cabinStatus.textContent = 'PUERTAS ABIERTAS - ESPERANDO';
+        }
+
+        function entrarEnVentanaInterna() {
+            if (estadoSimulacion.emergencia) return;
+            
+            estadoSimulacion.enVentanaInterna = true;
+            estadoSimulacion.estado = 'VENTANA INTERNA';
+            
+            // CERRAR PUERTAS (esto es lo que solicitas)
+            cerrarPuertas();
+            
+            elementos.cabinStatus.textContent = 'VENTANA INTERNA - ESPERANDO ORDEN';
+            elementos.currentState.textContent = 'VENTANA INTERNA';
+            
+            // Iniciar temporizador de 10 segundos para ventana interna
+            iniciarTemporizadorVentanaInterna(10);
+        }
+
+        function finalizarVentanaPuertas() {
+            // Solo informativo, ya las puertas se cerraron en entrarEnVentanaInterna
+            elementos.cabinStatus.textContent = 'FIN DE VENTANA';
         }
 
         function cerrarPuertas() {
             if (estadoSimulacion.emergencia) return;
             
             estadoSimulacion.puertasAbiertas = false;
+            estadoSimulacion.puertasCerradas = true;
             estadoSimulacion.estado = 'CERRANDO PUERTAS';
             
             // Aplicar animación de cierre
@@ -1388,7 +1429,7 @@
             // Ocultar temporizador
             elementos.doorTimer.classList.remove('show');
             
-            // Limpiar temporizador
+            // Limpiar temporizador si existía
             if (estadoSimulacion.temporizadorPuertas) {
                 clearTimeout(estadoSimulacion.temporizadorPuertas);
                 estadoSimulacion.temporizadorPuertas = null;
@@ -1402,16 +1443,23 @@
             // Después de cerrar, cambiar a ESPERANDO
             setTimeout(() => {
                 elementos.cabinDoors.classList.remove('doors-closing');
+                elementos.cabinDoors.classList.add('doors-closed');
                 
                 if (!estadoSimulacion.emergencia) {
-                    estadoSimulacion.estado = 'ESPERANDO';
-                    elementos.cabinStatus.textContent = 'ESPERANDO';
-                    elementos.currentState.textContent = 'ESPERANDO';
+                    if (estadoSimulacion.enVentanaInterna) {
+                        estadoSimulacion.estado = 'VENTANA INTERNA';
+                        elementos.cabinStatus.textContent = 'VENTANA INTERNA - ESPERANDO';
+                        elementos.currentState.textContent = 'VENTANA INTERNA';
+                    } else {
+                        estadoSimulacion.estado = 'ESPERANDO';
+                        elementos.cabinStatus.textContent = 'ESPERANDO';
+                        elementos.currentState.textContent = 'ESPERANDO';
+                    }
                 }
             }, 800); // Tiempo de animación de cierre
         }
 
-        function iniciarTemporizadorCierre(segundos) {
+        function iniciarTemporizadorApertura(segundos) {
             // Mostrar temporizador
             elementos.timerDisplay.textContent = `${segundos}s`;
             elementos.doorTimer.classList.add('show');
@@ -1427,20 +1475,47 @@
                 }
             }, 1000);
             
-            // Programar cierre automático
+            // Programar finalización de apertura
             if (estadoSimulacion.temporizadorPuertas) {
                 clearTimeout(estadoSimulacion.temporizadorPuertas);
             }
             
             estadoSimulacion.temporizadorPuertas = setTimeout(() => {
-                cerrarPuertas();
+                // Las puertas permanecen abiertas, no se cierran automáticamente
+                // La ventana interna se activará con mensaje separado
+                puertasTotalmenteAbiertas();
             }, segundos * 1000);
         }
 
-        // ===== SISTEMA DE EMERGENCIA =====
+        function iniciarTemporizadorVentanaInterna(segundos) {
+            // Mostrar temporizador
+            elementos.timerDisplay.textContent = `${segundos}s`;
+            elementos.doorTimer.classList.add('show');
+            
+            let contador = segundos;
+            estadoSimulacion.temporizadorDisplay = setInterval(() => {
+                contador--;
+                elementos.timerDisplay.textContent = `${contador}s`;
+                
+                if (contador <= 0) {
+                    clearInterval(estadoSimulacion.temporizadorDisplay);
+                    elementos.doorTimer.classList.remove('show');
+                    
+                    // Finalizar ventana interna
+                    estadoSimulacion.enVentanaInterna = false;
+                    if (!estadoSimulacion.emergencia) {
+                        estadoSimulacion.estado = 'ESPERANDO';
+                        elementos.cabinStatus.textContent = 'ESPERANDO';
+                        elementos.currentState.textContent = 'ESPERANDO';
+                    }
+                }
+            }, 1000);
+        }
+
         function activarEmergencia(razon) {
             estadoSimulacion.emergencia = true;
             estadoSimulacion.movimiento = 'DETENIDO';
+            estadoSimulacion.enVentanaInterna = false;
             
             // Detener cualquier temporizador
             if (estadoSimulacion.temporizadorPuertas) {
@@ -1476,7 +1551,6 @@
             elementos.cabinStatus.textContent = 'SISTEMA BLOQUEADO';
         }
 
-        // ===== SISTEMA DE LLAMADAS =====
         function mostrarLlamadaExterna(piso) {
             if (!piso) return;
             
@@ -1509,6 +1583,19 @@
                     }, 3000);
                 }
             });
+            
+            // Si está en ventana interna y recibe orden interna, cancelar ventana
+            if (estadoSimulacion.enVentanaInterna) {
+                estadoSimulacion.enVentanaInterna = false;
+                
+                // Limpiar temporizador de ventana interna
+                if (estadoSimulacion.temporizadorDisplay) {
+                    clearInterval(estadoSimulacion.temporizadorDisplay);
+                    estadoSimulacion.temporizadorDisplay = null;
+                }
+                
+                elementos.doorTimer.classList.remove('show');
+            }
             
             // Si está detenido, iniciar movimiento inmediato
             if (estadoSimulacion.movimiento === 'DETENIDO' && !estadoSimulacion.emergencia) {
@@ -1563,7 +1650,6 @@
             }
         }
 
-        // ===== REINICIO Y ESTADO INICIAL =====
         function reiniciarSimulacion() {
             // Resetear estado
             estadoSimulacion = {
@@ -1571,18 +1657,21 @@
                 pisoDestino: null,
                 estado: 'ESPERANDO',
                 puertasAbiertas: false,
+                puertasCerradas: true,
                 emergencia: false,
                 movimiento: 'DETENIDO',
                 temporizadorPuertas: null,
                 temporizadorDisplay: null,
                 colaLlamadas: [],
                 llamadasExternas: [],
-                motorActivado: false
+                motorActivado: false,
+                enVentanaInterna: false
             };
             
             // Resetear UI
             elementos.elevatorCabin.className = 'elevator-cabin floor-1';
             elementos.elevatorCabin.classList.remove('emergency', 'moving-up', 'moving-down', 'motor-active');
+            elementos.cabinDoors.className = 'cabin-doors doors-closed';
             elementos.cabinDoors.classList.remove('doors-open', 'doors-closing');
             elementos.cabinFloor.textContent = '1';
             elementos.cabinStatus.textContent = 'ESPERANDO';
@@ -1626,13 +1715,11 @@
         elementos.btnOpenDoor.addEventListener('click', () => {
             if (!estadoSimulacion.emergencia && estadoSimulacion.movimiento === 'DETENIDO') {
                 if (estadoSimulacion.puertasAbiertas) {
-                    // Si ya están abiertas, reiniciar temporizador
-                    if (estadoSimulacion.temporizadorPuertas) {
-                        clearTimeout(estadoSimulacion.temporizadorPuertas);
-                    }
-                    iniciarTemporizadorCierre(10);
+                    // Si ya están abiertas, cerrarlas
+                    cerrarPuertas();
                 } else {
-                    iniciarAperturaPuertas(estadoSimulacion.pisoActual);
+                    // Si están cerradas, abrirlas
+                    abrirPuertas();
                 }
             }
         });
